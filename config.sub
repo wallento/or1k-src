@@ -918,9 +918,6 @@ case $basic_machine in
 		basic_machine=hppa1.1-oki
 		os=-proelf
 		;;
-	openrisc | openrisc-*)
-		basic_machine=or32-unknown
-		;;
 	os400)
 		basic_machine=powerpc-ibm
 		os=-os400
