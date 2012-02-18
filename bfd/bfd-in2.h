@@ -4907,7 +4907,6 @@ a matching LO8XG part.  */
   BFD_RELOC_860_HIGOTOFF,
 
 /* OpenRISC 1000 Relocations.  */
-  BFD_RELOC_OR1K_ABS_26,
   BFD_RELOC_OR1K_REL_26,
 
 /* H8 elf Relocations.  */
