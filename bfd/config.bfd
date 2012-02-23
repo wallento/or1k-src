@@ -1144,11 +1144,7 @@ case "${targ}" in
     targ_selvecs=bfd_elf32_bignios2_vec
     ;;
 
-  openrisc-*-elf)
-    targ_defvec=bfd_elf32_openrisc_vec
-    ;;
-
-  or1k-*-elf)
+  or1k-*-elf | or1k-*-linux*)
     targ_defvec=bfd_elf32_or1k_vec
     ;;
 
