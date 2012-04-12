@@ -242,9 +242,8 @@ case "${host_cpu}" in
   nios2*)
 	machine_dir=nios2
 	;;
-  or16)
-	;;
-  or32)
+  or1k)
+        machine_dir=or1k
 	;;
   powerpc*)
 	machine_dir=powerpc
@@ -728,6 +727,9 @@ case "${host}" in
   nds32*)
 	syscall_dir=syscalls
 	;;
+  or1k-*-*)
+	syscall_dir=syscalls
+        ;;
   powerpc*-*-eabialtivec*)
 	default_newlib_io_long_long="yes"
 	newlib_cflags="${newlib_cflags} -DMISSING_SYSCALL_NAMES"

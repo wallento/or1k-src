@@ -819,6 +819,7 @@ mt
 nds32
 necv70
 nios2
+or1k
 powerpc
 rl78
 rx
@@ -11890,6 +11891,8 @@ subdirs="$subdirs a29k"
 	necv70) subdirs="$subdirs necv70"
  ;;
 	nios2) subdirs="$subdirs nios2"
+ ;;
+	or1k) subdirs="$subdirs or1k"
  ;;
 	powerpc) subdirs="$subdirs powerpc"
  ;;
