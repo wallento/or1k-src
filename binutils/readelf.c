@@ -2669,6 +2669,11 @@ get_machine_flags (unsigned e_flags, unsigned e_machine)
 	  if (e_flags & EF_SH_FDPIC)
 	    strcat (buf, ", fdpic");
 	  break;
+          
+        case EM_OR1K:
+          if (e_flags & EF_OR1K_NODELAY)
+            strcat (buf, ", no delay");
+          break;
 
 	case EM_SPARCV9:
 	  if (e_flags & EF_SPARC_32PLUS)
