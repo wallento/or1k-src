@@ -242,7 +242,7 @@ case "${host_cpu}" in
   nios2*)
 	machine_dir=nios2
 	;;
-  or1k)
+  or1k | or1knd)
         machine_dir=or1k
 	;;
   powerpc*)
@@ -720,13 +720,6 @@ case "${host}" in
         syscall_dir=syscalls
 	default_newlib_io_long_long="yes"
         ;;
-  nios2*)
-	syscall_dir=
-	newlib_cflags="${newlib_cflags} -DHAVE_RENAME -DHAVE_SYSTEM -DMISSING_SYSCALL_NAMES"
-	;;
-  nds32*)
-	syscall_dir=syscalls
-	;;
   or1k-*-*)
 	syscall_dir=syscalls
         ;;
