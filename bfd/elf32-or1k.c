@@ -814,6 +814,8 @@ or1k_elf_relocate_section (bfd *output_bfd,
 	  break;
 
 	case R_OR1K_INSN_REL_26:
+	case R_OR1K_HI_16_IN_INSN:
+	case R_OR1K_LO_16_IN_INSN:
 	case R_OR1K_32:
 	  /*
 	  R_OR1K_16? */
@@ -1182,6 +1184,8 @@ or1k_elf_check_relocs (bfd *abfd,
 	  break;
 
 	case R_OR1K_INSN_REL_26:
+	case R_OR1K_HI_16_IN_INSN:
+	case R_OR1K_LO_16_IN_INSN:
 	case R_OR1K_32:
 	  /* R_OR1K_16? */
           {
