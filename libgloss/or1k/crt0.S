@@ -3,6 +3,7 @@
    Copyright (C) 2004, Jacob Bower
    Copyright (C) 2010, Embecosm Limited <info@embecosm.com>
    Copyright (C) 2011, ORSoC AB
+   Copyright (C) 2014, Authors
 
    Contributor Jeremy Bennett <jeremy.bennett@embecosm.com>
    Contributor Julius Baxter  <julius.baxter@orsoc.se>
@@ -37,15 +38,46 @@
 
 
 /* -------------------------------------------------------------------------- */
-// Generic definitions
+// Stack definitions
 /* -------------------------------------------------------------------------- */
+
+// Stacks
+// Memory layout:
+//  +--------------------+ <- board_mem_base+board_mem_size/exception_stack_top
+//  | exception stack(s) |
+//  +--------------------+ <- stack_top
+//  |     stack(s)       |
+//  +--------------------+ <- stack_bottom
+//  |      heap          |
+//  +--------------------+
+//  | text, data, bss..  |
+//  +--------------------+
+
 // Reserved stack size
 #define STACK_SIZE 65536
+
+// Reserved stack size for exceptions (can usually be smaller than normal stack)
+#define EXCEPTION_STACK_SIZE 8192
+
 // Size of redzone + size of space required to store state
 // This value must match that in the support library or1k_exception_handler
 // function
-#define EXCEPTION_STACK_SIZE (128+128)
+#define EXCEPTION_STACK_FRAME (128+128)
 
+	.section .data
+	.global stack_top     /* points to the next address after the stack */
+	.global stack_bottom  /* points to the last address in the stack */
+	.global stack_size    /* reserved stack size */
+	.global exception_stack_top
+	.global exception_stack_bottom
+	.global exception_stack_size
+
+stack_top:		.space	4,0
+stack_bottom:	.space	4,0
+stack_size:		.word	STACK_SIZE	/*!< Reserved stack space in bytes. */
+exception_stack_top:	.space	4,0
+exception_stack_bottom:	.space	4,0
+exception_stack_size:	.word	EXCEPTION_STACK_SIZE
 
 /* -------------------------------------------------------------------------- */
 /*!Macro to load a symbol's address into a register.         
@@ -59,20 +91,39 @@
 	l.ori   gpr, gpr, lo(symbol)
 
 /* -------------------------------------------------------------------------- */
-/*!Macro to handle exceptions.                               
+/*!Macro to handle exceptions.
 
   Load NPC into r3, EPCR into r4
                                                                               */
 /* -------------------------------------------------------------------------- */
-#define CALL_EXCEPTION_HANDLER            		\
-	l.addi  r1, r1, -EXCEPTION_STACK_SIZE;          \
-	l.sw    4(r1), r3;             			\
-	l.sw    8(r1), r4;             			\
-	l.mfspr r3,r0,SPR_NPC;          		\
-        OR1K_DELAYED(					\
-	OR1K_INST(l.mfspr r4,r0,SPR_EPCR_BASE),		\
-	OR1K_INST(l.j 	or1k_exception_handler)		\
-        )
+#define CALL_EXCEPTION_HANDLER            		   \
+    /* store current stack pointer to address 4 */ \
+	l.sw    0x4(r0), r1;                           \
+    /* Load top of the exception stack */          \
+	l.movhi r1,hi(exception_stack_top);            \
+	l.ori   r1,r1,lo(exception_stack_top);         \
+	l.lwz   r1, 0(r1);                             \
+    /* Reserve red zone and context space */       \
+	l.addi  r1, r1, -EXCEPTION_STACK_FRAME;        \
+    /* Store GPR3 in context */                    \
+	l.sw    0x4(r1), r3;             			   \
+    /* Load back software's stack pointer */       \
+	l.lwz   r3, 0x4(r0);                           \
+    /* Store this in the context */                \
+	l.sw    0x78(r1), r3;                          \
+    /* Store GPR4 in the context */                \
+	l.sw    0x8(r1), r4;             			   \
+    /* Copy the current program counter as first */\
+    /* argument for the exception handler. This */ \
+    /* is then used to determine the exception. */ \
+	l.mfspr r3,r0,SPR_NPC;          		       \
+    OR1K_DELAYED(					               \
+    /* Copy program counter of exception as */     \
+    /* second argument to the exception handler */ \
+	OR1K_INST(l.mfspr r4,r0,SPR_EPCR_BASE),		   \
+    /* Jump to exception handler. This will rfe */ \
+	OR1K_INST(l.j 	or1k_exception_handler)		   \
+    )
 
 /* -------------------------------------------------------------------------- */
 /*!Exception vectors                                                          */
@@ -247,16 +298,6 @@ __reset:
    - call exit if the main function ever returns.
    - loop forever (should never get here)                                     */
 /* -------------------------------------------------------------------------- */
-	/* The stack grows down from the top of writable memory. */
-	.section .data
-	// Pointers to the stack in memory
-	.global stack_top     /* points to the next address after the stack */
-	.global stack_bottom  /* points to the last address in the stack */
-	.global stack_size    /* reserved stack size */
-stack_top:		.space	4,0
-stack_bottom:	.space	4,0
-stack_size:		.word	STACK_SIZE	/*!< Reserved stack space in bytes. */
-
 	.section .text
 	.global	_start
         .type	_start,@function
@@ -276,26 +317,45 @@ _start:
 	l.ori	r2,r2,lo(_board_mem_size)
 	l.lwz	r2,0(r2)
 	l.add	r1,r1,r2
+
+	/* Store exception stack top address */
+	LOAD_SYMBOL_2_GPR(r3,exception_stack_top)
+	l.sw    0(r3),r1
+
+	/* Store exception stack bottom address */
+	// calculate bottom address
+	// r3 = *exception stack size
+	LOAD_SYMBOL_2_GPR(r3,exception_stack_size)
+	// r3 = exception stack size
+	l.lwz   r3,0(r3)
+	// r4 = exception stack top - exception stack size = exception stack bottom
+	l.sub   r4,r1,r3
+	// r5 = *exception stack bottom
+	LOAD_SYMBOL_2_GPR(r5,exception_stack_bottom)
+	// store
+	l.sw    0(r5),r4
+
+	// Move stack pointer accordingly
+	l.or    r1,r0,r4
 	l.or	r2,r1,r1
 
 	/* Store stack top address */
-	l.movhi	r3,hi(stack_top)
-	l.ori	r3,r3,lo(stack_top)
+	LOAD_SYMBOL_2_GPR(r3,stack_top)
 	l.sw	0(r3),r1
 
 	/* Store stack bottom address */
 	// calculate bottom address
 	// r3 = stack size
-	l.movhi r3,hi(stack_size)
-	l.ori   r3,r3,lo(stack_size)
+	LOAD_SYMBOL_2_GPR(r3,stack_size)
 	l.lwz   r3,0(r3)
-	// r4 = stack top - stack size
+	// r4 = stack top - stack size = stack bottom
 	// -> stack bottom
 	l.sub   r4,r1,r3
+	// r5 = *exception stack bottom
+	LOAD_SYMBOL_2_GPR(r5,stack_bottom)
 	// store to variable
-	l.movhi	r3,hi(stack_bottom)
-	l.ori	r3,r3,lo(stack_bottom)
-	l.sw	0(r3),r4
+	l.sw	0(r5),r4
+
 	
 	/* Initialise cache */
 	/* TODO - potentially make this optional for simulation targets to save

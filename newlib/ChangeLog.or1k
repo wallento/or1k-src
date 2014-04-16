@@ -1,3 +1,7 @@
+2014-04-16  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* libc/machine/or1k/or1k-support-asm.c: restore original stack
+	    pointer from exception stack after exception
+
 2013-10-27  Stefan Kristiansson  <stefan.kristiansson@saunalahti.fi>
 
 	* libc/machine/or1k/or1k-support-asm.S (or1k_interrupt_handler):

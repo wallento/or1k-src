@@ -684,7 +684,8 @@ or1k_exception_handler:
 	l.lwz    r30, 0x70(r1)
 	l.lwz    r31, 0x74(r1)
 
-	l.addi  r1, r1, EXCEPTION_STACK_SIZE
+	// Restore original stack
+	l.lwz    r1, 0x78(r1)
 
 	l.rfe
 	l.nop
