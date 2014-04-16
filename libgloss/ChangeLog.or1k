@@ -1,3 +1,8 @@
+2014-04-16  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* or1k/crt0.S: change naming of stack pointers
+	* or1k/impure.c: ditto
+	* or1k/sbrk.c: ditto
+
 2013-07-10  Stefan Kristiansson  <stefan.kristiansson@saunalahti.fi>
 
 	* or1k/crt0.S: Rename __init/__fini to _init/_fini

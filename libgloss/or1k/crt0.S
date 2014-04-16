@@ -6,6 +6,7 @@
 
    Contributor Jeremy Bennett <jeremy.bennett@embecosm.com>
    Contributor Julius Baxter  <julius.baxter@orsoc.se>
+   Contributor Stefan Wallentowitz <stefan.wallentowitz@tum.de>
 
    This file is part of Newlib.
 
@@ -34,6 +35,18 @@
 #include "or1k-asm.h"
 #include "spr-defs.h"
 
+
+/* -------------------------------------------------------------------------- */
+// Generic definitions
+/* -------------------------------------------------------------------------- */
+// Reserved stack size
+#define STACK_SIZE 65536
+// Size of redzone + size of space required to store state
+// This value must match that in the support library or1k_exception_handler
+// function
+#define EXCEPTION_STACK_SIZE (128+128)
+
+
 /* -------------------------------------------------------------------------- */
 /*!Macro to load a symbol's address into a register.         
   
@@ -51,11 +64,6 @@
   Load NPC into r3, EPCR into r4
                                                                               */
 /* -------------------------------------------------------------------------- */
-// Size of redzone + size of space required to store state
-// This value must match that in the support library or1k_exception_handler
-// function
-#define EXCEPTION_STACK_SIZE (128+128)
-	
 #define CALL_EXCEPTION_HANDLER            		\
 	l.addi  r1, r1, -EXCEPTION_STACK_SIZE;          \
 	l.sw    4(r1), r3;             			\
@@ -241,8 +249,13 @@ __reset:
 /* -------------------------------------------------------------------------- */
 	/* The stack grows down from the top of writable memory. */
 	.section .data
-	.global stack
-stack:	.space	4,0	
+	// Pointers to the stack in memory
+	.global stack_top     /* points to the next address after the stack */
+	.global stack_bottom  /* points to the last address in the stack */
+	.global stack_size    /* reserved stack size */
+stack_top:		.space	4,0
+stack_bottom:	.space	4,0
+stack_size:		.word	STACK_SIZE	/*!< Reserved stack space in bytes. */
 
 	.section .text
 	.global	_start
@@ -265,10 +278,24 @@ _start:
 	l.add	r1,r1,r2
 	l.or	r2,r1,r1
 
-	/* Store stack address in stack variable */
-	l.movhi	r3,hi(stack)
-	l.ori	r3,r3,lo(stack)
+	/* Store stack top address */
+	l.movhi	r3,hi(stack_top)
+	l.ori	r3,r3,lo(stack_top)
 	l.sw	0(r3),r1
+
+	/* Store stack bottom address */
+	// calculate bottom address
+	// r3 = stack size
+	l.movhi r3,hi(stack_size)
+	l.ori   r3,r3,lo(stack_size)
+	l.lwz   r3,0(r3)
+	// r4 = stack top - stack size
+	// -> stack bottom
+	l.sub   r4,r1,r3
+	// store to variable
+	l.movhi	r3,hi(stack_bottom)
+	l.ori	r3,r3,lo(stack_bottom)
+	l.sw	0(r3),r4
 	
 	/* Initialise cache */
 	/* TODO - potentially make this optional for simulation targets to save
