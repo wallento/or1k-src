@@ -284,24 +284,49 @@ __reset:
 
 /* -------------------------------------------------------------------------- */
 /*!Main entry point
-  
-   We initialise the stack and frame pointer first, before we set up the
-   caches, since otherwise we'll need to disable the instruction cache when
-   patching the bus error vector code.
 
-   The remaining tasks are then:
-   - optionally set up instruction and/or data caches
-   - clear BSS
-   - call global and static constructors
-   - set up destructors to be called from exit
-   - jump to the main function
-   - call exit if the main function ever returns.
-   - loop forever (should never get here)                                     */
+TODO: What is meant with the following? What is patched?
+   >>We initialise the stack and frame pointer first, before we set up the
+   caches, since otherwise we'll need to disable the instruction cache when
+   patching the bus error vector code.<<
+
+  This is the initialization code of the library. It performs these steps:
+
+   * Initialize the stacks:
+     Two stacks are configured: The system stack is used by the software and
+     the exception stack is used when an exception occurs. We added this as
+     this should be flexible with respect to the usage of virtual memory.
+
+   * Activate the caches:
+     If available the caches are initiliazed and activated.
+
+   * Clear BSS:
+     The BSS are essentially the uninitialized C variables. They are set to 0
+     by default. This is performed by this function.
+
+   * Initialize the impure data structure:
+     Similarly, we need two library contexts, one for the normal software and
+     one that is used during exceptions. The impure data structure holds
+     the context information of the library. The called C function will setup
+     both data structures. There is furthermore a pointer to the currently
+     active impure data structure, which is initially set to the normal one.
+
+   * Initialize constructors:
+     Call the static and global constructors
+
+   * Set up destructors to call from exit
+
+   * Jump to main
+
+   * Call exit after main returns
+
+   * Loop forever
+*/
+
 /* -------------------------------------------------------------------------- */
 	.section .text
 	.global	_start
-        .type	_start,@function
-
+	.type	_start,@function
 
 	/* Following externs from board-specific object passed at link time */
 	.extern _board_mem_base
@@ -310,11 +335,9 @@ __reset:
 	
 _start:
 	/* Initialise stack and frame pointer (set to same value) */
-	l.movhi	r1,hi(_board_mem_base)
-	l.ori	r1,r1,lo(_board_mem_base)
+	LOAD_SYMBOL_2_GPR(r1,_board_mem_base)
 	l.lwz	r1,0(r1)
-	l.movhi	r2,hi(_board_mem_size)
-	l.ori	r2,r2,lo(_board_mem_size)
+	LOAD_SYMBOL_2_GPR(r2,_board_mem_size)
 	l.lwz	r2,0(r2)
 	l.add	r1,r1,r2
 
@@ -356,17 +379,15 @@ _start:
 	// store to variable
 	l.sw	0(r5),r4
 
-	
 	/* Initialise cache */
 	/* TODO - potentially make this optional for simulation targets to save
 	time during startup */
 	OR1K_DELAYED_NOP(OR1K_INST(l.jal 	or1k_cache_init))
-	
+
 	/* Clear BSS */
-.L10:	l.movhi r3,hi(__bss_start)
-	l.ori   r3,r3,lo(__bss_start)
-	l.movhi r4,hi(end)
-	l.ori   r4,r4,lo(end)
+.L10:
+	LOAD_SYMBOL_2_GPR(r3,__bss_start)
+	LOAD_SYMBOL_2_GPR(r4,end)
 
 .L1:    l.sw    (0)(r3),r0
         l.sfltu r3,r4
