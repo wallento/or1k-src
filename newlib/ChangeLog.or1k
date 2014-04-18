@@ -1,3 +1,8 @@
+2014-04-18  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* libc/machine/or1k/Makefile.am: Add missing automake files
+	* libc/machine/or1k/Makefile.in: Run automake
+	* libc/machine/or1k/configure: ditto
+
 2014-04-16  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
 	* libc/machine/or1k/or1k-support-asm.c: restore original stack
 	    pointer from exception stack after exception
