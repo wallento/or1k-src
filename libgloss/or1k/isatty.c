@@ -30,13 +30,10 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
+#include <reent.h>
 #include <unistd.h>
 
 #include "or1k-support.h"
-
-#undef ERRNO
-extern int  errno;
-
 
 /* -------------------------------------------------------------------------- */
 /*!Is a file a TTY when using a UART?
@@ -44,16 +41,14 @@ extern int  errno;
    We only support stdin, stdout and stderr to the console, so we are always a
    TTY for these.
 
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
-
    @param[in] file  The fileno to check.
 
    @return  1 if we are a TTY, 0 otherwise, with an error code in the global
             variable errno.                                                   */
 /* -------------------------------------------------------------------------- */
 int
-_isatty (int   file)
+_isatty_r (struct _reent *reent,
+           int           file)
 {
   if ((BOARD_HAS_UART && (file == STDIN_FILENO))  ||
       (file == STDOUT_FILENO) ||
@@ -63,7 +58,7 @@ _isatty (int   file)
     }
   else
     {
-      errno = EBADF;
+      reent->_errno = EBADF;
       return  -1;
     }
 }	/* _isatty () */

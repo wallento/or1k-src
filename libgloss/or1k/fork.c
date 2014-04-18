@@ -30,27 +30,20 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
-
-
-#undef errno
-extern int  errno;
-
+#include <reent.h>
 
 /* -------------------------------------------------------------------------- */
 /*!Create a new process.
 
    We have no other processes, so this always fails.
 
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
-
    @return  -1 to indicate failure, with an error code in the global variable
             errno.                                                            */
 /* -------------------------------------------------------------------------- */
 int
-_fork ()
+_fork_r (struct _reent* reent)
 {
-  errno = EAGAIN;
+  reent->_errno = EAGAIN;
   return -1;			/* Always fails */
 
 }	/* _fork () */

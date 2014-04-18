@@ -30,20 +30,13 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
-
-
-#undef errno
-extern int  errno;
-
+#include <reent.h>
 
 /* -------------------------------------------------------------------------- */
 /*!Establish a new name for an old file.
 
    We only support stdin, stdout and stderr and these cannot be linked. Any
    other file is invalid, so we always fail.
-
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
 
    @param[in] old  Old file name
    @param[in] new  New file name
@@ -52,10 +45,11 @@ extern int  errno;
             errno.                                                            */
 /* -------------------------------------------------------------------------- */
 int
-_link (char *old,
-       char *new)
+_link_r (struct _reent *reent,
+         const char    *old,
+         const char    *new)
 {
-  errno = EMLINK;
+  reent->_errno = EMLINK;
   return -1;			/* Always fails */
 
 }	/* _link () */

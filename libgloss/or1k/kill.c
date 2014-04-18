@@ -30,19 +30,12 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
-
-
-#undef errno
-extern int  errno;
-
+#include <reent.h>
 
 /* -------------------------------------------------------------------------- */
 /*!Send a signal.
 
    We have only the one process and don't do signals, so this always fails.
-
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
 
    @param[in] pid  Process to send a signal to.
    @param[in] sig  Signal to send
@@ -51,10 +44,11 @@ extern int  errno;
             errno.                                                            */
 /* -------------------------------------------------------------------------- */
 int
-_kill (int  pid,
-       int  sig)
+_kill_r (struct _reent *reent,
+         int           pid,
+         int           sig)
 {
-  errno = EINVAL;
+  reent->_errno = EINVAL;
   return -1;			/* Always fails */
 
 }	/* _kill () */

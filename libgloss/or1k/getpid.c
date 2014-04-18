@@ -29,6 +29,7 @@
    with Doxygen.                                                              */
 /* -------------------------------------------------------------------------- */
 
+#include <reent.h>
 
 /* -------------------------------------------------------------------------- */
 /*!Get the process ID.
@@ -36,13 +37,10 @@
    We only have the one process, so we return 1 (in case anyone thinks 0 is
    special).
 
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
-
    @return  The process ID (always 1).                                        */
 /* -------------------------------------------------------------------------- */
 int
-_getpid ()
+_getpid_r (struct _reent *reent)
 {
   return  1;				/* Success */
 

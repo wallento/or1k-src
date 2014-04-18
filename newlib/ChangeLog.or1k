@@ -1,4 +1,12 @@
 2014-04-18  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* libc/machine/or1k/Makefile.am: Add or1k-impure.c
+	* libc/machine/or1k/Makefile.in: Run automake
+	* libc/machine/configure.host: Enable dynamic reentrancy for or1k
+	* libc/machine/or1k/or1k-impure.c: Impure init and getreent
+	* libc/machine/or1k/or1k-support-asm.S: Replace impure data pointer
+	    with pointer to the exception impure data pointer during exception
+
+2014-04-18  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
 	* libc/machine/or1k/Makefile.am: Add missing automake files
 	* libc/machine/or1k/Makefile.in: Run automake
 	* libc/machine/or1k/configure: ditto

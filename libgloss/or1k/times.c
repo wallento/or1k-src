@@ -30,28 +30,22 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
+#include <reent.h>
 #include <sys/times.h>
-
-
-#undef errno
-extern int  errno;
-
 
 /* -------------------------------------------------------------------------- */
 /*!Get process timing info
 
    We do not support process timing at present, so always return -1.
 
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
-
    @return  -1 to indicate failure, with an error code in the global variable
             errno.                                                            */
 /* -------------------------------------------------------------------------- */
-int
-_times (struct tms *buf)
+_CLOCK_T_
+_times_r (struct _reent *reent,
+          struct tms    *buf)
 {
-  errno = EACCES;
+  reent->_errno = EACCES;
   return  -1;
 
 }	/* _times () */

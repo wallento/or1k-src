@@ -30,19 +30,12 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
-
-
-#undef errno;
-extern int  errno;
-
+#include <reent.h>
 
 /* -------------------------------------------------------------------------- */
 /*!Transfer control to a new process.
 
    We have no other processes, so this always fails.
-
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
 
    @param[in] name  The program to be launched a a new process.
    @param[in] argv  Argv for the new process (null terminated).
@@ -52,11 +45,12 @@ extern int  errno;
             errno.                                                            */
 /* -------------------------------------------------------------------------- */
 int
-_execve (char  *name,
-	 char **argv,
-	 char **env)
+_execve_r (struct _reent *reent,
+           const char    *name,
+           char *const   *argv,
+           char *const   *env)
 {
-  errno = ENOMEM;
+  reent->_errno = ENOMEM;
   return -1;			/* Always fails */
 
 }	/* _execve () */

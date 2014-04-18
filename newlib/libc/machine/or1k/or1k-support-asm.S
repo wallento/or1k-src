@@ -625,6 +625,14 @@ or1k_exception_handler:
 	l.sw    0x70(r1), r30
 	l.sw    0x74(r1), r31
 	
+	/* Replace impure pointer for exception */
+	l.movhi r20, hi(_exception_impure_ptr)
+	l.ori   r20, r20, lo(_exception_impure_ptr)
+	l.lwz   r20, 0(r20)
+	l.movhi r21, hi(_current_impure_ptr)
+	l.ori   r21, r21, lo(_current_impure_ptr)
+	l.sw    0(r21), r20
+
 	/* Determine offset in table of exception handler using r3*/
 	l.andi	r13,r3,0xffff
 	l.srli	r13,r13,6
@@ -651,6 +659,14 @@ or1k_exception_handler:
 	OR1K_INST(l.or	r3,r4,r4),
 	OR1K_INST(l.jalr	r13)
         )
+
+    /* Restore impure pointer */
+	l.movhi r20, hi(_impure_ptr)
+	l.ori   r20, r20, lo(_impure_ptr)
+	l.lwz   r20, 0(r20)
+	l.movhi r21, hi(_current_impure_ptr)
+	l.ori   r21, r21, lo(_current_impure_ptr)
+	l.sw    0(r21), r20
 
 	/* Restore state */
 	l.lwz    r2, 0x00(r1)

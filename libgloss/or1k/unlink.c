@@ -30,19 +30,12 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
-
-
-#undef errno
-extern int  errno;
-
+#include <reent.h>
 
 /* -------------------------------------------------------------------------- */
 /*!Unlink a file.
 
    We don't support a file system, so this always fails
-
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
 
    @param[in] name  The file name to unlink.
 
@@ -50,9 +43,10 @@ extern int  errno;
             errno.                                                            */
 /* -------------------------------------------------------------------------- */
 int
-_unlink (char *name)
+_unlink_r (struct _reent *reent,
+           const char    *name)
 {
-  errno = ENOENT;
+  reent->_errno = ENOENT;
   return -1;			/* Always fails */
 
 }	/* _unlink () */

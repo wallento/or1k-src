@@ -30,13 +30,11 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
+#include <reent.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "or1k-support.h"
-
-#undef errno
-extern int  errno;
 
 
 /* -------------------------------------------------------------------------- */
@@ -45,15 +43,13 @@ extern int  errno;
    We only know about stdin, stdout and stderr, and treat these as character
    special files. All other files are erroneous.
 
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
-
    @return  0 on success, with the struct stat appropriately updated. -1 on
             failure, with an error code in the global variable errno.         */
 /* -------------------------------------------------------------------------- */
 int
-_fstat (int          file,
-	struct stat *st)
+_fstat_r (struct _reent *reent,
+          int           file,
+          struct stat   *st)
 {
   if ((BOARD_HAS_UART && (STDIN_FILENO  == file)) ||
       (STDERR_FILENO == file) ||
@@ -64,7 +60,7 @@ _fstat (int          file,
     }
   else
     {
-      errno = EBADF;
+      reent->_errno = EBADF;
       return  -1;
     }
 }	/* _fstat () */
