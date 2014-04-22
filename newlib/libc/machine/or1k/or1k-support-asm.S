@@ -45,6 +45,59 @@ or1k_numcores:
     )
 
 /* -------------------------------------------------------------------------- */
+/*! Synchronization functions
+                                                                              */
+/* -------------------------------------------------------------------------- */
+
+    .global or1k_sync_ll
+or1k_sync_ll:
+    OR1K_DELAYED(
+        OR1K_INST(l.lwa r11, 0(r3)),
+        OR1K_INST(l.jr  r9)
+    )
+
+    .global or1k_sync_sc
+or1k_sync_sc:
+    l.swa 0(r3), r4
+    OR1K_DELAYED(
+        OR1K_INST(l.ori r11, r0, 1),
+        OR1K_INST(l.bf  .or1k_sync_sc_done)
+    )
+    l.ori r11, r0, 0
+.or1k_sync_sc_done:
+    OR1K_DELAYED_NOP(OR1K_INST(l.jr r9))
+
+    .global or1k_sync_cas
+or1k_sync_cas:
+    /* Load linked address value to return register */
+    l.lwa  r11, 0(r3)
+    /* Compare value to parameter */
+    l.sfeq r11, r4
+    /* If not equal: abort and return the read value */
+    OR1K_DELAYED_NOP(OR1K_INST(l.bnf .or1k_sync_cas_done))
+    /* If compare was successfull: try writing */
+    l.swa  0(r3), r5
+    /* If writing was not successful: restart */
+    OR1K_DELAYED_NOP(OR1K_INST(l.bnf or1k_sync_cas))
+.or1k_sync_cas_done:
+    /* Return value is the original read value */
+    OR1K_DELAYED_NOP(OR1K_INST(l.jr r9))
+
+    .global or1k_sync_tsl
+or1k_sync_tsl:
+    l.lwa   r13, 0(r3)
+    l.sfeq  r13, r0
+    OR1K_DELAYED(
+        OR1K_INST(l.bnf .or1k_sync_tsl_done),
+        OR1K_INST(l.ori r11, r0, 0)
+    )
+    l.ori   r11, r0, 1
+    l.swa   0(r3), r11
+    OR1K_DELAYED_NOP(OR1K_INST(l.bnf or1k_sync_tsl))
+.or1k_sync_tsl_done:
+    OR1K_DELAYED_NOP(OR1K_INST(l.jr  r9))
+
+/* -------------------------------------------------------------------------- */
 /*!Function to control MMU
                                                                               */
 /* -------------------------------------------------------------------------- */
@@ -554,7 +607,6 @@ or1k_interrupt_disable:
 	OR1K_INST(l.addi	r1,r1,4),
 	OR1K_INST(l.jr	r9)
         )
-
 
 /* -------------------------------------------------------------------------- */
 /*!Generic exception handler function

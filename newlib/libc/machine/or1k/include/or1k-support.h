@@ -553,9 +553,83 @@ void or1k_timer_reset_ticks(void);
  * @}
  */
 
-/*! Read core identifier */
+/*!
+ * \defgroup or1k_multicore Multicore and Synchronization Support
+ *
+ * @{
+ */
+
+/*!
+ * Read core identifier
+ *
+ * \return Core identifier
+ */
 unsigned long int or1k_coreid(void);
-/*! Read number of cores*/
+
+/*!
+ * Read number of cores
+ *
+ * \return Total number of cores
+ */
 unsigned long int or1k_numcores(void);
+
+/*!
+ * Load linked
+ *
+ * Load a value from the given address and link it. If the following
+ * or1k_sync_sc() goes to the same address and there was no conflicting access
+ * between loading and storing, the value is written back, else the write fails.
+ *
+ * \param address Address to load value from
+ * \return Value read from the address
+ */
+uint32_t or1k_sync_ll(void *address);
+
+/**
+ * Store conditional
+ *
+ * Conditionally store a value to the address. The address must have been read
+ * before using or1k_sync_ll() and there must be no other load link after that,
+ * otherwise this will always fail. In case there was no other write to the same
+ * address in between the load link and the store conditional, the store is
+ * successful, otherwise it will also fail.
+ *
+ * \param address Address to conditionally store to
+ * \param value Value to write to address
+ * \return 1 if success, 0 if fail
+ */
+int or1k_sync_sc(void *address, uint32_t value);
+
+/*!
+ * Compare and Swap
+ *
+ * Loads a data item from the memory and compares a given value to it. If the
+ * values match, a new value is written to the memory, if they mismatch, the
+ * operation is aborted. The whole operation is atomic, i.e., it is guaranteed
+ * that no other core changes the value between the read and the write.
+ *
+ * \param address Address to operate on
+ * \param compare Compare value
+ * \param swap New value to write
+ * \return The value read from memory (can be used to check for success)
+ */
+uint32_t or1k_sync_cas(void *address, uint32_t compare, uint32_t swap);
+
+/*!
+ * Test and Set Lock
+ *
+ * Check for a lock on an address. This means, if there is 0 at an address it
+ * will overwrite it with one and return 0. If the lock was already set (value
+ * 1 read from address), the function returns 1. The operation is atomic.
+ *
+ * \param address Address of the lock
+ * \return 0 if success, 1 if failed
+ */
+int or1k_sync_tsl(void *address);
+
+/*
+ * @}
+ */
+
 
 #endif	/* OR1K_NEWLIB_SUPPORT__H */
