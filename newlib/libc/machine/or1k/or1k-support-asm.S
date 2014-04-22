@@ -24,6 +24,26 @@
 #include "or1k-asm.h"
 #include "spr-defs.h"
 
+	.section .text
+
+/* -------------------------------------------------------------------------- */
+/*!Function to read core id and number of cores
+                                                                              */
+/* -------------------------------------------------------------------------- */
+    .global or1k_coreid
+or1k_coreid:
+    OR1K_DELAYED(
+        OR1K_INST(l.mfspr r11,r0,SPR_COREID),
+        OR1K_INST(l.jr	  r9)
+    )
+
+    .global or1k_numcores
+or1k_numcores:
+    OR1K_DELAYED(
+        OR1K_INST(l.mfspr r11,r0,SPR_NUMCORES),
+        OR1K_INST(l.jr	  r9)
+    )
+
 /* -------------------------------------------------------------------------- */
 /*!Function to control MMU
                                                                               */
@@ -31,7 +51,6 @@
 
 /* MMU control functions always switch MMU control with a l.rfe to return
    from function */
-	.section .text
 	
 	.global or1k_dmmu_enable
 or1k_dmmu_enable:

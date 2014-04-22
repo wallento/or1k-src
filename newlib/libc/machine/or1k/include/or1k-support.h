@@ -553,4 +553,9 @@ void or1k_timer_reset_ticks(void);
  * @}
  */
 
+/*! Read core identifier */
+unsigned long int or1k_coreid(void);
+/*! Read number of cores*/
+unsigned long int or1k_numcores(void);
+
 #endif	/* OR1K_NEWLIB_SUPPORT__H */
