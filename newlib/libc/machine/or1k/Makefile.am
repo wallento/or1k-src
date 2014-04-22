@@ -41,7 +41,8 @@ lib_a_SOURCES = longjmp.S \
                 setjmp.S \
                 or1k-support.c \
                 or1k-support-asm.S \
-                or1k-impure.c
+                or1k-impure.c \
+                mlock.c
 
 lib_a_CCASFLAGS=$(AM_CCASFLAGS)
 lib_a_CFLAGS=$(AM_CFLAGS)
