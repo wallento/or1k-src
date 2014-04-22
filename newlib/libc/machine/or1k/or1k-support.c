@@ -1,8 +1,10 @@
 /* or1k-support - OR1K CPU support functions
   
    Copyright (C) 2011, ORSoC AB
+   Copyright (C) 2014, Authors
   
    Contributor Julius Baxter  <julius.baxter@orsoc.se>
+   Contributor Stefan Wallentowitz <stefan.wallentowitz@tum.de>
   
    This file is part of Newlib.
   
@@ -21,6 +23,7 @@
 
 #include "or1k-support.h"
 #include "spr-defs.h"
+#include <stdint.h>
 
 /* Board-specific CPU clk HZ value */
 extern unsigned long _board_clk_freq;
@@ -30,7 +33,31 @@ volatile unsigned long or1k_timer_ticks;
 
 /* Tick rate storage */
 unsigned long or1k_timer_period;
+uint32_t or1k_timer_mode;
 
+void
+or1k_interrupts_enable(void)
+{
+    uint32_t sr = or1k_mfspr(SPR_SR);
+    sr |= SPR_SR_IEE;
+    or1k_mtspr(SPR_SR, sr);
+}
+
+uint32_t
+or1k_interrupts_disable(void)
+{
+    uint32_t oldsr, newsr;
+    oldsr= or1k_mfspr(SPR_SR);
+    newsr = oldsr & ~SPR_SR_IEE;
+    or1k_mtspr(SPR_SR, newsr);
+    return oldsr & SPR_SR_IEE;
+}
+
+void
+or1k_interrupts_restore(uint32_t sr_iee)
+{
+    or1k_mtspr(SPR_SR, or1k_mfspr(SPR_SR) | (sr_iee & SPR_SR_IEE));
+}
 
 /* --------------------------------------------------------------------------*/
 /*!Report a 32-bit value
@@ -116,8 +143,8 @@ void
 or1k_timer_interrupt_handler(void)
 {
   or1k_timer_ticks++;
-  or1k_mtspr(SPR_TTMR, SPR_TTMR_IE | SPR_TTMR_RT | 
-	(or1k_timer_period & SPR_TTMR_PERIOD));
+  uint32_t ttmr = (or1k_mfspr(SPR_TTMR) & SPR_TTMR_PERIOD);
+  or1k_mtspr(SPR_TTMR, ttmr | SPR_TTMR_IE | SPR_TTMR_RT);
 }
 
 /* --------------------------------------------------------------------------*/
@@ -127,19 +154,57 @@ or1k_timer_interrupt_handler(void)
 
    @param[in] hz     Rate at which to trigger timer ticks                    */
 /* --------------------------------------------------------------------------*/
-void 
+int
 or1k_timer_init(unsigned int hz)
 {
+  uint32_t upr = or1k_mfspr(SPR_UPR);
+  if ((upr & SPR_UPR_TTP) == 0) {
+      return -1;
+  }
 
   /* Set this, for easy access when reloading */
-  or1k_timer_period = _board_clk_freq/hz;
+  uint32_t period = (_board_clk_freq/hz) & SPR_TTMR_PERIOD;
+  or1k_mtspr(SPR_TTMR, period);
 
   /* Reset timer tick counter */
   or1k_timer_ticks = 0;
   
   /* Install handler */
   or1k_exception_handler_add(0x5,or1k_timer_interrupt_handler);
+  or1k_timer_mode = SPR_TTMR_RT;
 
+  /* Reset counter register */
+  or1k_mtspr(SPR_TTCR, 0);
+
+  return 0;
+}
+
+void
+or1k_timer_set_period(uint32_t hz)
+{
+    uint32_t period = (_board_clk_freq/hz) & SPR_TTMR_PERIOD;
+    uint32_t ttmr = or1k_mfspr(SPR_TTMR);
+    ttmr = (ttmr & ~SPR_TTMR_PERIOD) | period;
+    or1k_mtspr(SPR_TTMR, ttmr);
+}
+
+void
+or1k_timer_set_handler(void (*handler)(void))
+{
+    or1k_exception_handler_add(0x5, handler);
+}
+
+void
+or1k_timer_set_mode(uint32_t mode)
+{
+    // Store mode in variable
+    or1k_timer_mode = mode;
+
+    uint32_t ttmr = or1k_mfspr(SPR_TTMR);
+    // If the timer is currently running, we also change the mode
+    if ((ttmr & SPR_TTMR_M) != 0) {
+        ttmr = (ttmr & ~SPR_TTMR_M) | mode;
+    }
 }
 
 /* --------------------------------------------------------------------------*/
@@ -151,10 +216,10 @@ or1k_timer_init(unsigned int hz)
 void 
 or1k_timer_enable(void)
 {
-  or1k_mtspr(SPR_TTMR, SPR_TTMR_IE | SPR_TTMR_RT | 
-	(or1k_timer_period & SPR_TTMR_PERIOD));
-  or1k_mtspr(SPR_SR, SPR_SR_TEE | or1k_mfspr(SPR_SR));
-
+    uint32_t ttmr = or1k_mfspr(SPR_TTMR);
+    ttmr |= SPR_TTMR_IE | or1k_timer_mode;
+    or1k_mtspr(SPR_TTMR, ttmr);
+    or1k_mtspr(SPR_SR, SPR_SR_TEE | or1k_mfspr(SPR_SR));
 }
 
 /* --------------------------------------------------------------------------*/
@@ -163,10 +228,32 @@ or1k_timer_enable(void)
    Disable timer interrupt in SR
                                                                              */
 /* --------------------------------------------------------------------------*/
-void 
+uint32_t
 or1k_timer_disable(void)
 {
-   or1k_mtspr(SPR_SR, ~SPR_SR_TEE & or1k_mfspr(SPR_SR));
+    uint32_t sr = or1k_mfspr(SPR_SR);
+    or1k_mtspr(SPR_TTMR, or1k_mfspr(SPR_TTMR) & ~SPR_TTMR_IE);
+    or1k_mtspr(SPR_SR, ~SPR_SR_TEE & sr);
+    return (sr & SPR_SR_TEE);
+}
+
+void
+or1k_timer_restore(uint32_t sr_tee)
+{
+    or1k_mtspr(SPR_SR, or1k_mfspr(SPR_SR) | (sr_tee & SPR_SR_TEE));
+}
+
+void
+or1k_timer_pause(void)
+{
+    or1k_mtspr(SPR_TTMR, or1k_mfspr(SPR_TTMR) & ~SPR_TTMR_M);
+}
+
+void
+or1k_timer_reset(void)
+{
+    or1k_mtspr(SPR_TTMR, or1k_mfspr(SPR_TTMR) & ~SPR_TTMR_IP);
+    or1k_mtspr(SPR_TTCR, 0);
 }
 
 /* --------------------------------------------------------------------------*/
@@ -192,6 +279,3 @@ or1k_timer_reset_ticks(void)
 {
   or1k_timer_ticks = 0;
 }
-
-
-

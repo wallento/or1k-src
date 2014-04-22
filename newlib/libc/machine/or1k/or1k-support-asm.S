@@ -1,8 +1,10 @@
 /* or1k-support - OR1K CPU support functions
   
    Copyright (C) 2011, ORSoC AB
+   Copyright (C) 2014, Authors
   
    Contributor Julius Baxter  <julius.baxter@orsoc.se>
+   Contributor Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
   
    This file is part of Newlib.
   

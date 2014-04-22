@@ -1,3 +1,9 @@
+2014-04-22  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* libc/machine/or1k/include/or1k-support.h: Add functions and comment
+	* libc/machine/or1k/include/or1k-support.h: Clean up and extend
+	    functions, such as disable and restore interrupts and make timer
+	    more flexible.
+
 2014-04-18  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
 	* libc/machine/or1k/Makefile.am: Add or1k-impure.c
 	* libc/machine/or1k/Makefile.in: Run automake
