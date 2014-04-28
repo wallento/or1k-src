@@ -100,6 +100,15 @@ exception_stack_top:    .space 4,0
 exception_stack_bottom: .space 4,0
 exception_stack_size:   .word  EXCEPTION_STACK_SIZE
 
+#ifdef OR1K_MULTICORE
+// Pointers to arrays of pointers, configured in _or1k_multicore_init
+	.section .data
+	.global stack_core
+	.global exception_stack_core
+stack_core:		.space 4, 0
+exception_stack_core:	.space 4, 0
+#endif
+
 /* -------------------------------------------------------------------------- */
 /*!Macro to load a symbol's address into a register.
 
@@ -117,6 +126,7 @@ exception_stack_size:   .word  EXCEPTION_STACK_SIZE
   Load NPC into r3, EPCR into r4
                                                                               */
 /* -------------------------------------------------------------------------- */
+#ifndef OR1K_MULTICORE
 #define CALL_EXCEPTION_HANDLER                     \
 	/* store current stack pointer to address 4 */ \
 	l.sw	0x4(r0), r1;                           \
@@ -145,6 +155,47 @@ exception_stack_size:   .word  EXCEPTION_STACK_SIZE
 	/* Jump to exception handler. This will rfe */ \
 		OR1K_INST(l.j or1k_exception_handler)      \
 	)
+#else
+#define CALL_EXCEPTION_HANDLER					\
+	/* store current stack pointer to SPR_ISR0 */		\
+	l.mtspr	r0, r1, SPR_ISR0;				\
+	/* store current GPR3 as we need it */			\
+	l.mtspr	r0, r3, SPR_ISR1;				\
+	/* Load pointer to exception stack array */		\
+	l.movhi	r1, hi(exception_stack_core);			\
+	l.ori	r1, r1, lo(exception_stack_core);		\
+	l.lwz	r1, 0(r1);					\
+	/* Get core id */					\
+	l.mfspr	r3, r0, SPR_COREID;				\
+	/* Calculate offset in array */				\
+	l.slli	r3, r3, 2;					\
+	/* Load value from array to stack pointer */		\
+	l.add	r1, r1, r3;					\
+	l.lwz	r1, 0(r1);					\
+	/* Reserve red zone and context space */		\
+	l.addi	r1, r1, -EXCEPTION_STACK_FRAME;			\
+	/* Load back software's stack pointer */		\
+	l.mfspr	r3, r0, SPR_ISR0;				\
+	/* Store this in the context */				\
+	l.sw	0x78(r1), r3;					\
+	/* Load back GPR3 */					\
+	l.mfspr	r3, r0, SPR_ISR1;				\
+	/* Store this in the context */				\
+	l.sw	0x4(r1), r3;					\
+	/* Store GPR4 in the context */				\
+	l.sw	0x8(r1), r4;					\
+	/* Copy the current program counter as first */		\
+	/* argument for the exception handler. This */		\
+	/* is then used to determine the exception. */		\
+	l.mfspr	r3, r0, SPR_NPC;				\
+	OR1K_DELAYED(						\
+	/* Copy program counter of exception as */		\
+	/* second argument to the exception handler */		\
+		OR1K_INST(l.mfspr r4, r0, SPR_EPCR_BASE),	\
+	/* Jump to exception handler. This will rfe */		\
+		OR1K_INST(l.j or1k_exception_handler)		\
+	)
+#endif
 
 /* -------------------------------------------------------------------------- */
 /*!Exception vectors                                                          */
@@ -155,6 +206,13 @@ exception_stack_size:   .word  EXCEPTION_STACK_SIZE
 	.org 0x100
 __reset:
 	l.movhi	r0,0
+#ifdef OR1K_MULTICORE
+	// This is a trick that relies on the fact, that all cores start at the same
+	// time and they are similarily fast
+	l.sw	0x4(r0), r0
+	// Similarly, we use address 8 to signal how many cores have exit'ed
+	l.sw	0x8(r0), r0
+#endif
 	l.movhi	r1,0
 	l.movhi	r2,0
 	l.movhi	r3,0
@@ -334,6 +392,8 @@ __reset:
      both data structures. There is furthermore a pointer to the currently
      active impure data structure, which is initially set to the normal one.
 
+   * Initialize or1k support library reentrant data structures
+
    * Initialize constructors:
      Call the static and global constructors
 
@@ -387,6 +447,44 @@ _board_init_early:
 	.extern _board_init
 
 _start:
+#ifdef OR1K_MULTICORE
+	// It is good to initialize and enable the caches before we do anything,
+	// otherwise the cores will continuously access the bus during the wait time
+	// for the boot barrier (0x4).
+	// Fortunately or1k_cache_init does not need a stack!
+	/* Initialise cache */
+	/* TODO - potentially make this optional for simulation targets to save
+	time during startup */
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal     or1k_cache_init))
+
+	/* TODO: only while we are not coherent */
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal     or1k_dcache_disable))
+
+	// All but core 0 wait here
+	l.mfspr	r1, r0, SPR_COREID
+	l.sfeq	r1, r0
+	OR1K_DELAYED(
+		OR1K_INST(l.or r1, r0, r0),
+		OR1K_INST(l.bf .Lcore0)
+	)
+.Lspin:
+	l.sfeq r1, r0
+	OR1K_DELAYED(
+		OR1K_INST(l.lwz r1, 0x4(r0)),
+		OR1K_INST(l.bf  .Lspin)
+	)
+
+	LOAD_SYMBOL_2_GPR(r2, stack_core)
+	l.lwz	r2, 0(r2)
+	l.mfspr	r1, r0, SPR_COREID
+	l.slli	r1, r1, 2
+	l.add	r2, r2, r1
+	l.lwz	r1, 0(r2)
+	l.or	r2, r1, r1
+
+	OR1K_DELAYED_NOP(OR1K_INST(l.j .L2));
+.Lcore0:
+#endif
 	/* Call early board initialization */
 	OR1K_DELAYED_NOP(OR1K_INST(l.jal _board_init_early))
 
@@ -407,6 +505,10 @@ _start:
 	LOAD_SYMBOL_2_GPR(r3,exception_stack_size)
 	// r3 = exception stack size
 	l.lwz	r3,0(r3)
+#ifdef OR1K_MULTICORE
+	l.mfspr	r4, r0, SPR_NUMCORES
+	l.mul	r3, r4, r3
+#endif
 	// r4 = exception stack top - exception stack size = exception stack bottom
 	l.sub	r4,r1,r3
 	// r5 = *exception stack bottom
@@ -427,6 +529,10 @@ _start:
 	// r3 = stack size
 	LOAD_SYMBOL_2_GPR(r3,stack_size)
 	l.lwz	r3,0(r3)
+#ifdef OR1K_MULTICORE
+	l.mfspr	r4, r0, SPR_NUMCORES
+	l.mul	r3, r4, r3
+#endif
 	// r4 = stack top - stack size = stack bottom
 	// -> stack bottom
 	l.sub	r4,r1,r3
@@ -435,10 +541,12 @@ _start:
 	// store to variable
 	l.sw	0(r5),r4
 
+#ifndef OR1K_MULTICORE
 	/* Initialise cache */
 	/* TODO - potentially make this optional for simulation targets to save
 	time during startup */
 	OR1K_DELAYED_NOP(OR1K_INST(l.jal or1k_cache_init))
+#endif
 
 	/* Clear BSS */
 .Lclear_bss:
@@ -453,8 +561,19 @@ _start:
 		OR1K_INST(l.bf .Lclear_bss_loop)
 	)
 
+#ifdef OR1K_MULTICORE
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal _or1k_support_reent_init_core0))
+#endif
+
 	/* Reinitialize the reentrancy structure */
 	OR1K_DELAYED_NOP(OR1K_INST(l.jal __impure_init))
+
+#ifdef OR1K_MULTICORE
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal _or1k_multicore_init))
+
+	/* Reinitialize the or1k support library reentrancy structure */
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal _or1k_support_reent_init))
+#endif
 
 	/* Call global and static constructors */
 	OR1K_DELAYED_NOP(OR1K_INST(l.jal _init))
@@ -474,6 +593,11 @@ _start:
 	l.bnf	.Lskip_uart
 	l.or	r3,r0,r0
 	OR1K_DELAYED_NOP(OR1K_INST(l.jal __uart_init))
+#ifdef OR1K_MULTICORE
+	// Start other cores
+	l.ori	r3, r0, 1
+	l.sw	0x4(r0), r3
+#endif
 
 .Lskip_uart:
 	/* Board initialization */
@@ -488,6 +612,18 @@ _start:
 		OR1K_INST(l.jal main)
 	)
 
+#ifdef OR1K_MULTICORE
+.incrementexit:
+	l.lwa	r3, 0x8(r0)
+	l.addi	r3, r3, 1
+	l.swa	0x8(r0), r3
+	OR1K_DELAYED_NOP(OR1K_INST(l.bnf .incrementexit));
+	l.mfspr	r4, r0, SPR_NUMCORES
+	l.sfeq	r3, r4
+	OR1K_DELAYED_NOP(OR1K_INST(l.bf .exitcorelast));
+	OR1K_DELAYED_NOP(OR1K_INST(l.j _exit));
+.exitcorelast:
+#endif
 	/* If program exits, call exit routine */
 	OR1K_DELAYED(
 		OR1K_INST(l.addi r3,r11,0),

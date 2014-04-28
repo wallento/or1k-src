@@ -52,10 +52,12 @@ void __malloc_lock(struct _reent *ptr) {
     id = (uint32_t) ptr; // Our id is the address of the reentrancy data
 
     do {
-        // Read current lock owner
-        old_owner = _malloc_lock_own;
-        // .. and spin while it is locked and we are not the owner
-    } while (old_owner && (old_owner != id));
+        do {
+            // Read current lock owner
+            old_owner = or1k_sync_ll(&_malloc_lock_own);
+            // .. and spin while it is locked and we are not the owner
+        } while (old_owner && (old_owner != id));
+    } while (!or1k_sync_sc(&_malloc_lock_own, id));
 
     // Store the TEE and IEE flags for later restore
     _malloc_lock_restore_timer = timerenable;

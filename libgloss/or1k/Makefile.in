@@ -87,12 +87,14 @@ BOARD_LIBS = $(addsuffix .a,$(BOARDS))
 
 # Our own C runtime startup and BSPs
 CRT0     	= crt0.o
+CRT0_MC     = crt0_mc.o
 LIBOR1K      	= libor1k.a
+LIBOR1K_MC  = libor1k_mc.a
 
-OUTPUTS  = $(CRT0) $(LIBOR1K)
+OUTPUTS  = $(CRT0) $(LIBOR1K) $(CRT0_MC) $(LIBOR1K_MC)
 
 # The standard object files for the library
-LIBOR1K_OBJS =	_exit.o      		\
+COMMON_OBJS =	_exit.o      		\
 		close.o      		\
 		environ.o    		\
 		execve.o     		\
@@ -113,8 +115,18 @@ LIBOR1K_OBJS =	_exit.o      		\
 		wait.o       		\
 		write.o
 
+LIBOR1K_OBJS = $(COMMON_OBJS) \
+        reent.o               \
+        or1k-support-reent.o
+
+LIBOR1K_MC_OBJS = $(COMMON_OBJS) \
+        reent_mc.o               \
+        or1k-support-reent_mc.o          \
+        multicore.o
+
 # Host specific makefile fragment specifies the automatic rules
 @host_makefile_frag@
+
 
 # Build what we need out
 all: $(OUTPUTS) $(BOARD_LIBS)
@@ -124,6 +136,19 @@ all: $(OUTPUTS) $(BOARD_LIBS)
 $(LIBOR1K): $(LIBOR1K_OBJS)
 	${AR} ${ARFLAGS} $@ $^
 	${RANLIB} $@
+
+$(LIBOR1K_MC): $(LIBOR1K_MC_OBJS)
+	${AR} ${ARFLAGS} $@ $^
+	${RANLIB} $@
+
+$(CRT0_MC): crt0.S
+	$(CC) -DOR1K_MULTICORE $(CFLAGS_FOR_TARGET) $(INCLUDES) $(CFLAGS) -c $< -o $@
+
+reent_mc.o: reent.c
+	$(CC) -DOR1K_MULTICORE $(CFLAGS_FOR_TARGET) $(INCLUDES) $(CFLAGS) -c $< -o $@
+
+or1k-support-reent_mc.o: or1k-support-reent.c
+	$(CC) -DOR1K_MULTICORE $(CFLAGS_FOR_TARGET) $(INCLUDES) $(CFLAGS) -c $< -o $@
 
 %.a: %.o
 	${AR} ${ARFLAGS} $@ $^

@@ -74,8 +74,8 @@ __impure_init (void)
     _current_impure_ptr = _impure_ptr;
 }	/* __impure_init () */
 
-struct _reent * __getreent(void) {
+struct _reent *__getreent(void) {
     // Return the current one. This is set initially above, and during runtime
     // at or1k_exception_handler
-    return _current_impure_ptr;
+    return _or1k_getreent();
 }

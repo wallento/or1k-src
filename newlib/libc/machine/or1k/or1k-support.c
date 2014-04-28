@@ -22,18 +22,12 @@
    with this program.  If not, see <http://www.gnu.org/licenses/>.            */
 
 #include "or1k-support.h"
+#include "or1k-support-reent.h"
 #include "spr-defs.h"
 #include <stdint.h>
 
 /* Board-specific CPU clk HZ value */
 extern unsigned long _board_clk_freq;
-
-/* Tick timer variable */
-volatile unsigned long or1k_timer_ticks;
-
-/* Tick rate storage */
-unsigned long or1k_timer_period;
-uint32_t or1k_timer_mode;
 
 void
 or1k_interrupts_enable(void)
@@ -142,7 +136,7 @@ or1k_rand ()
 void 
 or1k_timer_interrupt_handler(void)
 {
-  or1k_timer_ticks++;
+  _or1k_support_getreent()->or1k_timer_ticks++;
   uint32_t ttmr = (or1k_mfspr(SPR_TTMR) & SPR_TTMR_PERIOD);
   or1k_mtspr(SPR_TTMR, ttmr | SPR_TTMR_IE | SPR_TTMR_RT);
 }
@@ -167,11 +161,11 @@ or1k_timer_init(unsigned int hz)
   or1k_mtspr(SPR_TTMR, period);
 
   /* Reset timer tick counter */
-  or1k_timer_ticks = 0;
+  _or1k_support_getreent()->or1k_timer_ticks = 0;
   
   /* Install handler */
   or1k_exception_handler_add(0x5,or1k_timer_interrupt_handler);
-  or1k_timer_mode = SPR_TTMR_RT;
+  _or1k_support_getreent()->or1k_timer_mode = SPR_TTMR_RT;
 
   /* Reset counter register */
   or1k_mtspr(SPR_TTCR, 0);
@@ -198,7 +192,7 @@ void
 or1k_timer_set_mode(uint32_t mode)
 {
     // Store mode in variable
-    or1k_timer_mode = mode;
+    _or1k_support_getreent()->or1k_timer_mode = mode;
 
     uint32_t ttmr = or1k_mfspr(SPR_TTMR);
     // If the timer is currently running, we also change the mode
@@ -218,7 +212,7 @@ void
 or1k_timer_enable(void)
 {
     uint32_t ttmr = or1k_mfspr(SPR_TTMR);
-    ttmr |= SPR_TTMR_IE | or1k_timer_mode;
+    ttmr |= SPR_TTMR_IE | _or1k_support_getreent()->or1k_timer_mode;
     or1k_mtspr(SPR_TTMR, ttmr);
     or1k_mtspr(SPR_SR, SPR_SR_TEE | or1k_mfspr(SPR_SR));
 }
@@ -241,6 +235,12 @@ or1k_timer_disable(void)
 void
 or1k_timer_restore(uint32_t sr_tee)
 {
+    uint32_t ttmr = or1k_mfspr(SPR_TTMR);
+    ttmr |= _or1k_support_getreent()->or1k_timer_mode;
+    if (sr_tee) {
+        ttmr |= SPR_TTMR_IE;
+    }
+    or1k_mtspr(SPR_TTMR, ttmr);
     or1k_mtspr(SPR_SR, or1k_mfspr(SPR_SR) | (sr_tee & SPR_SR_TEE));
 }
 
@@ -266,7 +266,7 @@ or1k_timer_reset(void)
 unsigned long
 or1k_timer_get_ticks(void)
 {
-  return or1k_timer_ticks;
+  return _or1k_support_getreent()->or1k_timer_ticks;
 }
 
 /* --------------------------------------------------------------------------*/
@@ -278,5 +278,5 @@ or1k_timer_get_ticks(void)
 void
 or1k_timer_reset_ticks(void)
 {
-  or1k_timer_ticks = 0;
+    _or1k_support_getreent()->or1k_timer_ticks = 0;
 }

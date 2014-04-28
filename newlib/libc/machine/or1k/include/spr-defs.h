@@ -90,6 +90,8 @@
 #define SPR_SR		(SPRGROUP_SYS + 17)  /* CZ 21/06/01 */
 #define SPR_PPC         (SPRGROUP_SYS + 18)  /* CZ 21/06/01 */
 #define SPR_FPCSR       (SPRGROUP_SYS + 20)  /* CZ 21/06/01 */
+#define SPR_ISR0        (SPRGROUP_SYS + 21)
+#define SPR_ISR1        (SPRGROUP_SYS + 22)
 #define SPR_EPCR_BASE	(SPRGROUP_SYS + 32)  /* CZ 21/06/01 */
 #define SPR_EPCR_LAST	(SPRGROUP_SYS + 47)  /* CZ 21/06/01 */
 #define SPR_EEAR_BASE	(SPRGROUP_SYS + 48)

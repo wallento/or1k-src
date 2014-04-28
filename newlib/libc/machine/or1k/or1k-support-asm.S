@@ -452,24 +452,26 @@ or1k_interrupt_handler_data_ptr31:	.long	INTERRUPT_HANDLER_NOT_SET
 	.section .text
 	.global	or1k_interrupt_handler
         .type	or1k_interrupt_handler,@function
-
 or1k_interrupt_handler:
 	/* Make room on stack, save link register */
 	l.addi	r1,r1,-12
-	l.sw	0(r1),r9
 	
+    OR1K_DELAYED(
+        OR1K_INST(l.sw  0(r1), r9),
+        /* Get reentrant data structure */
+        OR1K_INST(l.jal _or1k_support_getreent)
+    );
+
 	/* Read PICSR */
 	l.mfspr	r3,r0,SPR_PICSR
 
 	/* Load handler table base address */
-	l.movhi r7,hi(or1k_interrupt_handler_table)
-	l.ori	r7,r7,lo(or1k_interrupt_handler_table)
+    l.lwz   r7, 0(r11)
 	/* Check to see if this handler has been set yet */
 	l.movhi r8,hi(INTERRUPT_HANDLER_NOT_SET)
 	l.ori 	r8,r8,lo(INTERRUPT_HANDLER_NOT_SET)
 	/* Load data pointer table base address */
-	l.movhi r12,hi(or1k_interrupt_handler_data_ptr_table)
-	l.ori	r12,r12,lo(or1k_interrupt_handler_data_ptr_table)
+	l.lwz   r12, 4(r11)
 	
 .L0:
 	/* Find first set bit in PICSR */
@@ -534,30 +536,46 @@ or1k_interrupt_handler:
 	
 	/* r3 should have IRQ line for peripheral */
 	/* r4 should have handler function address */
+	/* r5 should have function data parameter */
 or1k_interrupt_handler_add:
-	l.addi 	r1,r1,-4
-	l.sw	0(r1),r6
+	l.addi  r1, r1, -16
+	l.sw    0(r1), r9
+    l.sw    4(r1), r3
+    l.sw    8(r1), r4
+    OR1K_DELAYED(
+        OR1K_INST(l.sw  12(r1), r5),
+        /* Get address of interrupt handler table */
+        OR1K_INST(l.jal _or1k_support_getreent)
+    );
+    /* r11 is pointer to reent now */
+    /* Set r13 to interrupt_handler_table base pointer */
+    l.lwz   r13, 0(r11)
+    /* Set r15 to interrupt_handler_data_table base pointer */
+    l.lwz   r15, 4(r11)
+
+    /* Restore parameters from stack */
+    l.lwz   r3, 4(r1)
+    l.lwz   r4, 8(r1)
+    l.lwz   r5, 12(r1)
+
 	/* Convert interrupt number into word address */
 	l.slli	r3,r3,2
-	/* Get address of interrupt handler table */
-	l.movhi r6,hi(or1k_interrupt_handler_table)
-	l.ori	r6,r6,lo(or1k_interrupt_handler_table)
+
 	/* Add handler offset to table base */
-	l.add	r6,r6,r3
+	l.add	r13,r15,r3
 	/* Store handler function address */
-	l.sw 	0(r6),r4
-	/* Get address of interrupt handler data ptr table */
-	l.movhi r6,hi(or1k_interrupt_handler_data_ptr_table)
-	l.ori	r6,r6,lo(or1k_interrupt_handler_data_ptr_table)
+	l.sw 	0(r13),r4
+
 	/* Add handler offset to table base */
-	l.add	r6,r6,r3
+	l.add	r15,r15,r3
 	/* Store handler data pointer address */
-	l.sw 	0(r6),r5
-	/* Restore r6 */
-	l.lwz	r6,0(r1)
+	l.sw 	0(r15),r5
+
+	/* Restore r9 */
+	l.lwz	r9,0(r1)
         OR1K_DELAYED(
 	/* Restore stack value */
-	OR1K_INST(l.addi	r1,r1,4),
+	OR1K_INST(l.addi	r1,r1,16),
 	/* Return via link register */
 	OR1K_INST(l.jr	r9)
         )
@@ -698,13 +716,21 @@ or1k_exception_handler:
 	l.sw    0x70(r1), r30
 	l.sw    0x74(r1), r31
 	
-	/* Replace impure pointer for exception */
-	l.movhi r20, hi(_exception_impure_ptr)
-	l.ori   r20, r20, lo(_exception_impure_ptr)
-	l.lwz   r20, 0(r20)
-	l.movhi r21, hi(_current_impure_ptr)
-	l.ori   r21, r21, lo(_current_impure_ptr)
-	l.sw    0(r21), r20
+	// Store r3 before we call a C function
+	l.sw    -4(r1), r3
+    OR1K_DELAYED(
+        OR1K_INST(l.addi r1, r1, -4),
+        OR1K_INST(l.jal  _or1k_setreent_exception)
+    );
+
+	/* Get or1k_exception_handler_table address */
+    OR1K_DELAYED_NOP(OR1K_INST(l.jal _or1k_support_getreent));
+    l.lwz   r14,8(r11)
+	/* r14 now contains base of exception handler table */
+
+	/* Restore r3 */
+    l.lwz   r3, 0(r1)
+    l.addi  r1, r1, 4
 
 	/* Determine offset in table of exception handler using r3*/
 	l.andi	r13,r3,0xff00
@@ -714,10 +740,7 @@ or1k_exception_handler:
 	/* r13 now contains offset in or1k_exception_handler_table for
 	   function
 	*/
-	/* Get or1k_exception_handler_table address */
-	l.movhi r14,hi(or1k_exception_handler_table)
-	l.ori	r14,r14,lo(or1k_exception_handler_table)
-	/* r14 now contains base of exception handler table */
+
 	l.add	r14,r14,r13
 	l.lwz	r13, 0(r14)
 
@@ -733,13 +756,7 @@ or1k_exception_handler:
 	OR1K_INST(l.jalr	r13)
         )
 
-    /* Restore impure pointer */
-	l.movhi r20, hi(_impure_ptr)
-	l.ori   r20, r20, lo(_impure_ptr)
-	l.lwz   r20, 0(r20)
-	l.movhi r21, hi(_current_impure_ptr)
-	l.ori   r21, r21, lo(_current_impure_ptr)
-	l.sw    0(r21), r20
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal _or1k_setreent_standard));
 
 	/* Restore state */
 	l.lwz    r2, 0x00(r1)
@@ -800,23 +817,28 @@ exception_exit:
 	/* r3 should have exception number (2 for buserr, 5 for tick, etc.) */
 	/* r4 should have handler function address */
 or1k_exception_handler_add:
-	l.addi 	r1,r1,-4
-	l.sw	0(r1),r5
+	l.addi 	r1,r1,-8
+	l.sw	0(r1),r9
+	/* Get address of exception handler table */
+    OR1K_DELAYED(
+        OR1K_INST(l.sw  4(r1),r3),
+        OR1K_INST(l.jal _or1k_support_getreent)
+    );
+    l.lwz   r11,8(r11)
+    /* Restore r3 */
+	l.lwz	r3,4(r1)
 	/* Convert exception number into word address */
 	l.slli	r3,r3,2
 	l.addi	r3,r3,-8
-	/* Get address of exception handler table */
-	l.movhi r5,hi(or1k_exception_handler_table)
-	l.ori	r5,r5,lo(or1k_exception_handler_table)
 	/* Add handler offset to table base */
-	l.add	r5,r5,r3
+	l.add	r11,r11,r3
 	/* Store handler function address */
-	l.sw 	0(r5),r4
-	/* Restore r5 */
-	l.lwz	r5,0(r1)
+	l.sw 	0(r11),r4
+	/* Restore r9*/
+	l.lwz	r9,0(r1)
         OR1K_DELAYED(
 	/* Restore stack value */
-	OR1K_INST(l.addi	r1,r1,4),
+	OR1K_INST(l.addi	r1,r1,8),
 	/* Return via link register */
 	OR1K_INST(l.jr	r9)
         )
