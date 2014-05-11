@@ -340,6 +340,11 @@ void or1k_dcache_flush(unsigned long entry);
  */
 
 /*!
+ * Initialize MMUs
+ */
+void or1k_mmu_init(void);
+
+/*!
  * Enable instruction MMU
  */
 void or1k_immu_enable(void);

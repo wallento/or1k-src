@@ -104,7 +104,39 @@ or1k_sync_tsl:
 
 /* MMU control functions always switch MMU control with a l.rfe to return
    from function */
-	
+    .global or1k_mmu_init
+    .type   or1k_mmu_init,@function
+
+or1k_mmu_init:
+    /* Instruction TLB */
+    l.mfspr r3,r0,SPR_IMMUCFGR
+    l.andi  r4,r3,SPR_IMMUCFGR_NTS
+    l.srli  r5,r4,2
+    l.ori   r6,r0,1
+    l.sll   r7,r6,r5
+    l.ori   r3,r0,0
+.L4:
+    l.mtspr r3,r0,SPR_ITLBMR_BASE(0)
+    l.mtspr r3,r0,SPR_ITLBTR_BASE(0)
+    l.addi  r3,r3,1
+    l.sfne  r7,r3
+    OR1K_DELAYED_NOP(OR1K_INST(l.bf .L4))
+    /* Data TLB */
+    l.mfspr r3,r0,SPR_DMMUCFGR
+    l.andi 	r4,r3,SPR_DMMUCFGR_NTS
+    l.srli	r5,r4,2
+    l.ori	r6,r0,1
+    l.sll	r7,r6,r5
+    l.ori	r3,r0,0
+.L5:
+    l.mtspr	r3,r0,SPR_DTLBMR_BASE(0)
+    l.mtspr	r3,r0,SPR_DTLBTR_BASE(0)
+    l.addi	r3,r3,1
+    l.sfne	r7,r3
+    OR1K_DELAYED_NOP(OR1K_INST(l.bf .L5))
+
+    OR1K_DELAYED_NOP(OR1K_INST(l.jr r9))
+
 	.global or1k_dmmu_enable
 or1k_dmmu_enable:
         l.mfspr r3,r0,SPR_SR
