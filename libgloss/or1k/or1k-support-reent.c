@@ -56,24 +56,29 @@ void _or1k_support_reent_init_core0() {
 void _or1k_support_reent_init() {
     int c;
 
-    _or1k_support_reent_ptr = malloc(sizeof(struct _or1k_support_reent*) * NUMCORES);
+    // TODO: move this to newlib?
+    _or1k_support_reent_ptr = _sbrk_r(_impure_ptr,
+                                      sizeof(struct _or1k_support_reent*) * NUMCORES);
 
     _or1k_support_reent_ptr[0] = &_or1k_support_reent_core0;
 
     // Allocate on other cores and copy
     for (c = 1; c < NUMCORES; c++) {
-        _or1k_support_reent_ptr[c] = calloc(sizeof(struct _or1k_support_reent), 1);
+        _or1k_support_reent_ptr[c] = _sbrk_r(_impure_ptr,
+                                             sizeof(struct _or1k_support_reent));
 
-        _or1k_support_reent_ptr[c]->or1k_interrupt_handler_table = malloc(4 * 32);
-        _or1k_support_reent_ptr[c]->or1k_interrupt_handler_data_ptr_table = malloc(4 * 32);
-        _or1k_support_reent_ptr[c]->or1k_exception_handler_table = malloc(4 * 29);
+        memset(_or1k_support_reent_ptr[c], 0,sizeof(struct _or1k_support_reent));
+
+        _or1k_support_reent_ptr[c]->or1k_interrupt_handler_table = _sbrk_r(_impure_ptr, 4 * 32);
+        _or1k_support_reent_ptr[c]->or1k_interrupt_handler_data_ptr_table = _sbrk_r(_impure_ptr, 4 * 32);
+        _or1k_support_reent_ptr[c]->or1k_exception_handler_table = _sbrk_r(_impure_ptr, 4 * 29);
 
         memcpy(_or1k_support_reent_ptr[c]->or1k_interrupt_handler_table,
-               _or1k_support_reent_ptr[0]->or1k_interrupt_handler_table, 4*32);
+                _or1k_support_reent_ptr[0]->or1k_interrupt_handler_table, 4*32);
         memcpy(_or1k_support_reent_ptr[c]->or1k_interrupt_handler_data_ptr_table,
-               _or1k_support_reent_ptr[0]->or1k_interrupt_handler_data_ptr_table, 4*32);
+                _or1k_support_reent_ptr[0]->or1k_interrupt_handler_data_ptr_table, 4*32);
         memcpy(_or1k_support_reent_ptr[c]->or1k_exception_handler_table,
-               _or1k_support_reent_ptr[0]->or1k_exception_handler_table, 4*29);
+                _or1k_support_reent_ptr[0]->or1k_exception_handler_table, 4*29);
     }
 }
 

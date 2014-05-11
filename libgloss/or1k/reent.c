@@ -45,19 +45,14 @@ struct _reent **__ATTRIBUTE_IMPURE_PTR__ _current_impure_ptr_cores;
 
 void _or1k_init_reent_multicore(void) {
     int c;
-    // At this point we can use malloc on core 0
     // Only core 0 calls this!
     size_t vector_size = sizeof(struct _reent*) * or1k_numcores();
 
-    // Temporarily set the impure pointer static to core0 as we need it for
-    // malloc
-    _current_impure_ptr_cores = &_impure_ptr;
-
     // Allocate arrays
     struct _reent **iv, **ev, **cv;
-    iv = malloc(vector_size);
-    ev = malloc(vector_size);
-    cv = malloc(vector_size);
+    iv = _sbrk_r(_impure_ptr, vector_size);
+    ev = _sbrk_r(_impure_ptr, vector_size);
+    cv = _sbrk_r(_impure_ptr, vector_size);
 
     // Now set arrays productive
     _impure_ptr_cores = iv;
@@ -71,9 +66,9 @@ void _or1k_init_reent_multicore(void) {
 
     // Other cores' array entries
     for (c = 1; c < or1k_numcores(); c++) {
-        _impure_ptr_cores[c] = malloc(sizeof(struct _reent));
+        _impure_ptr_cores[c] = _sbrk_r(_impure_ptr, sizeof(struct _reent));
         _REENT_INIT_PTR (_impure_ptr_cores[c] );
-        _exception_impure_ptr_cores[c] = malloc(sizeof(struct _reent));
+        _exception_impure_ptr_cores[c] = _sbrk_r(_impure_ptr, sizeof(struct _reent));
         _REENT_INIT_PTR (_exception_impure_ptr_cores[c] );
         _current_impure_ptr_cores[c] = _impure_ptr_cores[c];
     }

@@ -38,8 +38,8 @@ void _or1k_multicore_init(void) {
     _or1k_init_reent_multicore();
 
     // Initialize stacks
-    stack_core = malloc(4 * or1k_numcores());
-    exception_stack_core = malloc(4 * or1k_numcores());
+    stack_core = _sbrk_r(_impure_ptr, 4 * or1k_numcores());
+    exception_stack_core = _sbrk_r(_impure_ptr, 4 * or1k_numcores());
 
     stack_core[0] = stack_top;
     exception_stack_core[0] = exception_stack_top;
