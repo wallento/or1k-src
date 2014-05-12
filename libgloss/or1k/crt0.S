@@ -33,6 +33,27 @@
    with Doxygen.                                                              */
 /* -------------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------- */
+/* Coding convention:
+   Assembly is hard to read per se, so please follow the following coding
+   conventions to keep it consistent and ease reading:
+    * internal jump labels start with L, no identation
+    * assemble lines have one tab identation
+    * attributes (.section, .global, ..) are indented with one tab
+    * code is structured using tabs, i.e., use 'l.sw\t0(r1),r1' with a single
+      tab. libgloss assumes 8 space tab width, so that might look unstructured
+      with tab widths below 6. Nevertheless don't use spaces or two tabs.
+    * no space after comma
+    * use the defined macros if possible as they reduce errors
+    * use OR1K_INST with OR1K_DELAYED(_NOP)
+    * OR1K_DELAYED is multiline for better readability, the inner parts are
+      indented with another tab.
+    * COMMENT! Try to accompy every line with a meaningful comment. If possible
+      use pseudo code to describe the code. Also mention intentions and not only
+      the obvious things..                                                    */
+/* -------------------------------------------------------------------------- */
+
+
 #include "or1k-asm.h"
 #include "spr-defs.h"
 
@@ -65,30 +86,30 @@
 #define EXCEPTION_STACK_FRAME (128+128)
 
 	.section .data
-	.global stack_top     /* points to the next address after the stack */
-	.global stack_bottom  /* points to the last address in the stack */
-	.global stack_size    /* reserved stack size */
+	.global stack_top	/* points to the next address after the stack */
+	.global stack_bottom	/* points to the last address in the stack */
+	.global stack_size	/* reserved stack size */
 	.global exception_stack_top
 	.global exception_stack_bottom
 	.global exception_stack_size
 
-stack_top:		.space	4,0
-stack_bottom:	.space	4,0
-stack_size:		.word	STACK_SIZE	/*!< Reserved stack space in bytes. */
-exception_stack_top:	.space	4,0
-exception_stack_bottom:	.space	4,0
-exception_stack_size:	.word	EXCEPTION_STACK_SIZE
+stack_top:	.space 4,0
+stack_bottom: .space 4,0
+stack_size:   .word  STACK_SIZE /*!< Reserved stack space in bytes. */
+exception_stack_top:    .space 4,0
+exception_stack_bottom: .space 4,0
+exception_stack_size:   .word  EXCEPTION_STACK_SIZE
 
 /* -------------------------------------------------------------------------- */
-/*!Macro to load a symbol's address into a register.         
-  
-  @param[in] gpr  General purpose register to load address into.       
+/*!Macro to load a symbol's address into a register.
+
+  @param[in] gpr  General purpose register to load address into.
   @param[in] symbol Name of symbol to load.                                   */
 /* -------------------------------------------------------------------------- */
 #define LOAD_SYMBOL_2_GPR(gpr,symbol)  \
-	.global symbol ;               \
-	l.movhi gpr, hi(symbol) ;      \
-	l.ori   gpr, gpr, lo(symbol)
+	.global symbol ;                   \
+	l.movhi	gpr,hi(symbol) ;           \
+	l.ori	gpr,gpr,lo(symbol)
 
 /* -------------------------------------------------------------------------- */
 /*!Macro to handle exceptions.
@@ -96,34 +117,34 @@ exception_stack_size:	.word	EXCEPTION_STACK_SIZE
   Load NPC into r3, EPCR into r4
                                                                               */
 /* -------------------------------------------------------------------------- */
-#define CALL_EXCEPTION_HANDLER            		   \
-    /* store current stack pointer to address 4 */ \
-	l.sw    0x4(r0), r1;                           \
-    /* Load top of the exception stack */          \
-	l.movhi r1,hi(exception_stack_top);            \
-	l.ori   r1,r1,lo(exception_stack_top);         \
-	l.lwz   r1, 0(r1);                             \
-    /* Reserve red zone and context space */       \
-	l.addi  r1, r1, -EXCEPTION_STACK_FRAME;        \
-    /* Store GPR3 in context */                    \
-	l.sw    0x4(r1), r3;             			   \
-    /* Load back software's stack pointer */       \
-	l.lwz   r3, 0x4(r0);                           \
-    /* Store this in the context */                \
-	l.sw    0x78(r1), r3;                          \
-    /* Store GPR4 in the context */                \
-	l.sw    0x8(r1), r4;             			   \
-    /* Copy the current program counter as first */\
-    /* argument for the exception handler. This */ \
-    /* is then used to determine the exception. */ \
-	l.mfspr r3,r0,SPR_NPC;          		       \
-    OR1K_DELAYED(					               \
-    /* Copy program counter of exception as */     \
-    /* second argument to the exception handler */ \
-	OR1K_INST(l.mfspr r4,r0,SPR_EPCR_BASE),		   \
-    /* Jump to exception handler. This will rfe */ \
-	OR1K_INST(l.j 	or1k_exception_handler)		   \
-    )
+#define CALL_EXCEPTION_HANDLER                     \
+	/* store current stack pointer to address 4 */ \
+	l.sw	0x4(r0), r1;                           \
+	/* Load top of the exception stack */          \
+	l.movhi	r1,hi(exception_stack_top);            \
+	l.ori	r1,r1,lo(exception_stack_top);         \
+	l.lwz	r1,0(r1);                              \
+	/* Reserve red zone and context space */       \
+	l.addi	r1,r1,-EXCEPTION_STACK_FRAME;          \
+	/* Store GPR3 in context */                    \
+	l.sw	0x4(r1),r3;                            \
+	/* Load back software's stack pointer */       \
+	l.lwz	r3,0x4(r0);                            \
+	/* Store this in the context */                \
+	l.sw	0x78(r1),r3;                           \
+	/* Store GPR4 in the context */                \
+	l.sw	0x8(r1),r4;                            \
+	/* Copy the current program counter as first */\
+	/* argument for the exception handler. This */ \
+	/* is then used to determine the exception. */ \
+	l.mfspr	r3,r0,SPR_NPC;                         \
+	OR1K_DELAYED(                                  \
+	/* Copy program counter of exception as */     \
+	/* second argument to the exception handler */ \
+		OR1K_INST(l.mfspr r4,r0,SPR_EPCR_BASE),    \
+	/* Jump to exception handler. This will rfe */ \
+		OR1K_INST(l.j or1k_exception_handler)      \
+	)
 
 /* -------------------------------------------------------------------------- */
 /*!Exception vectors                                                          */
@@ -131,166 +152,168 @@ exception_stack_size:	.word	EXCEPTION_STACK_SIZE
 	.section .vectors,"ax"
 
 	/* 0x100: RESET exception */
-        .org	0x100 	
+	.org 0x100
 __reset:
-	l.movhi r0, 0
-	l.movhi r1, 0
-	l.movhi r2, 0
-	l.movhi r3, 0
-	l.movhi r4, 0
-	l.movhi r5, 0
-	l.movhi r6, 0
-	l.movhi r7, 0
-	l.movhi r8, 0
-	l.movhi r9, 0
-	l.movhi r10, 0
-	l.movhi r11, 0
-	l.movhi r12, 0
-	l.movhi r13, 0
-	l.movhi r14, 0
-	l.movhi r15, 0
-	l.movhi r16, 0
-	l.movhi r17, 0
-	l.movhi r18, 0
-	l.movhi r19, 0
-	l.movhi r20, 0
-	l.movhi r21, 0
-	l.movhi r22, 0
-	l.movhi r23, 0
-	l.movhi r24, 0
-	l.movhi r25, 0
-	l.movhi r26, 0
-	l.movhi r27, 0
-	l.movhi r28, 0
-	l.movhi r29, 0
-	l.movhi r30, 0
-	l.movhi r31, 0
+	l.movhi	r0,0
+	l.movhi	r1,0
+	l.movhi	r2,0
+	l.movhi	r3,0
+	l.movhi	r4,0
+	l.movhi	r5,0
+	l.movhi	r6,0
+	l.movhi	r7,0
+	l.movhi	r8,0
+	l.movhi	r9,0
+	l.movhi	r10,0
+	l.movhi	r11,0
+	l.movhi	r12,0
+	l.movhi	r13,0
+	l.movhi	r14,0
+	l.movhi	r15,0
+	l.movhi	r16,0
+	l.movhi	r17,0
+	l.movhi	r18,0
+	l.movhi	r19,0
+	l.movhi	r20,0
+	l.movhi	r21,0
+	l.movhi	r22,0
+	l.movhi	r23,0
+	l.movhi	r24,0
+	l.movhi	r25,0
+	l.movhi	r26,0
+	l.movhi	r27,0
+	l.movhi	r28,0
+	l.movhi	r29,0
+	l.movhi	r30,0
+	l.movhi	r31,0
 
 	/* Clear status register, set supervisor mode */
-	l.ori r1, r0, SPR_SR_SM
-	l.mtspr r0, r1, SPR_SR
+	l.ori	r1,r0,SPR_SR_SM
+	l.mtspr	r0,r1,SPR_SR
 	/* Clear timer mode register*/
-	l.mtspr r0, r0, SPR_TTMR
+	l.mtspr	r0,r0,SPR_TTMR
 	/* Jump to program initialisation code */
 	LOAD_SYMBOL_2_GPR(r4, _start)
-	OR1K_DELAYED_NOP(OR1K_INST(l.jr    r4))
+	OR1K_DELAYED_NOP(OR1K_INST(l.jr r4))
 
-	.org	0x200
+	.org 0x200
 	CALL_EXCEPTION_HANDLER
 
 	/* 0x300: Data Page Fault exception */
-	.org	0x300
+	.org 0x300
 	CALL_EXCEPTION_HANDLER
-	
+
 	/* 0x400: Insn Page Fault exception */
-	.org	0x400
+	.org 0x400
 	CALL_EXCEPTION_HANDLER
 
 	/* 0x500: Timer exception */
-	.org	0x500
+	.org 0x500
 	CALL_EXCEPTION_HANDLER
 
 	/* 0x600: Aligment exception */
-	.org	0x600
+	.org 0x600
 	CALL_EXCEPTION_HANDLER
-	
+
 	/* 0x700: Illegal insn exception */
-	.org	0x700
+	.org 0x700
 	CALL_EXCEPTION_HANDLER
 
 	/* 0x800: External interrupt exception */
-	.org	0x800
+	.org 0x800
 	CALL_EXCEPTION_HANDLER
 
 	/* 0x900: DTLB miss exception */
-	.org	0x900
+	.org 0x900
 	CALL_EXCEPTION_HANDLER
-	
+
 	/* 0xa00: ITLB miss exception */
-	.org	0xa00
+	.org 0xa00
 	CALL_EXCEPTION_HANDLER
-	
+
 	/* 0xb00: Range exception */
-	.org	0xb00
+	.org 0xb00
 	CALL_EXCEPTION_HANDLER
-	
+
 	/* 0xc00: Syscall exception */
-	.org	0xc00
+	.org 0xc00
 	CALL_EXCEPTION_HANDLER
-	
-	/* 0xd00: floating point exception */
-	.org	0xd00
+
+	/* 0xd00: Floating point exception */
+	.org 0xd00
 	CALL_EXCEPTION_HANDLER
-	
+
 	/* 0xe00: Trap exception */
-	.org	0xe00
+	.org 0xe00
 	CALL_EXCEPTION_HANDLER
-	
+
 	/* 0xf00: Reserved exceptions */
-	.org	0xf00
+	.org 0xf00
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1000
+
+	.org 0x1000
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1100
+
+	.org 0x1100
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1200
+
+	.org 0x1200
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1300
+
+	.org 0x1300
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1400
+
+	.org 0x1400
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1500
+
+	.org 0x1500
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1600
+
+	.org 0x1600
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1700
+
+	.org 0x1700
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1800
+
+	.org 0x1800
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1900
+
+	.org 0x1900
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1a00
+
+	.org 0x1a00
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1b00
+
+	.org 0x1b00
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1c00
+
+	.org 0x1c00
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1d00
+
+	.org 0x1d00
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1e00
+
+	.org 0x1e00
 	CALL_EXCEPTION_HANDLER
-	
-	.org	0x1f00
+
+	.org 0x1f00
 	CALL_EXCEPTION_HANDLER
 
 	/* Pad to the end */
-	.org	0x1ffc
+	.org 0x1ffc
 	l.nop
 
 /* -------------------------------------------------------------------------- */
 /*!Main entry point
 
-TODO: What is meant with the following? What is patched?
-   >>We initialise the stack and frame pointer first, before we set up the
-   caches, since otherwise we'll need to disable the instruction cache when
-   patching the bus error vector code.<<
-
   This is the initialization code of the library. It performs these steps:
+
+   * Call early board initialization:
+     Before anything happened, the board support may do some very early
+     initialization. This is at maximum some very basic stuff that would
+     otherwise prevent the following code from functioning. Other initialization
+     of peripherals etc. is done later (before calling main).
+     See the description below and README.board for details.
 
    * Initialize the stacks:
      Two stacks are configured: The system stack is used by the software and
@@ -315,24 +338,33 @@ TODO: What is meant with the following? What is patched?
      Call the static and global constructors
 
    * Set up destructors to call from exit
+     The library will call the function set via atexit() during exit(). We set
+     it to call the _fini function which performs destruction.
+
+   * Call board initialization:
+     The board initialization can perform board specific initializations such as
+     configuring peripherals etc.
 
    * Jump to main
+     Call main with argc = 0 and *argv[] = 0
 
    * Call exit after main returns
+     Now we call exit()
 
    * Loop forever
+     We are dead.
 */
 
 /* -------------------------------------------------------------------------- */
 	.section .text
-	.global	_start
-	.type	_start,@function
+	.global  _start
+	.type    _start,@function
 
 	/* Following externs from board-specific object passed at link time */
 	.extern _board_mem_base
 	.extern _board_mem_size
 	.extern _board_uart_base
-	
+
 	/* The early board initialization may for example read the memory size and
 	   set the mem_base and mem_size or do some preliminary board
 	   initialization. As we do not have a stack at this time, the function may
@@ -367,23 +399,23 @@ _start:
 
 	/* Store exception stack top address */
 	LOAD_SYMBOL_2_GPR(r3,exception_stack_top)
-	l.sw    0(r3),r1
+	l.sw	0(r3),r1
 
 	/* Store exception stack bottom address */
 	// calculate bottom address
 	// r3 = *exception stack size
 	LOAD_SYMBOL_2_GPR(r3,exception_stack_size)
 	// r3 = exception stack size
-	l.lwz   r3,0(r3)
+	l.lwz	r3,0(r3)
 	// r4 = exception stack top - exception stack size = exception stack bottom
-	l.sub   r4,r1,r3
+	l.sub	r4,r1,r3
 	// r5 = *exception stack bottom
 	LOAD_SYMBOL_2_GPR(r5,exception_stack_bottom)
 	// store
-	l.sw    0(r5),r4
+	l.sw	0(r5),r4
 
 	// Move stack pointer accordingly
-	l.or    r1,r0,r4
+	l.or	r1,r0,r4
 	l.or	r2,r1,r1
 
 	/* Store stack top address */
@@ -394,10 +426,10 @@ _start:
 	// calculate bottom address
 	// r3 = stack size
 	LOAD_SYMBOL_2_GPR(r3,stack_size)
-	l.lwz   r3,0(r3)
+	l.lwz	r3,0(r3)
 	// r4 = stack top - stack size = stack bottom
 	// -> stack bottom
-	l.sub   r4,r1,r3
+	l.sub	r4,r1,r3
 	// r5 = *exception stack bottom
 	LOAD_SYMBOL_2_GPR(r5,stack_bottom)
 	// store to variable
@@ -406,62 +438,64 @@ _start:
 	/* Initialise cache */
 	/* TODO - potentially make this optional for simulation targets to save
 	time during startup */
-	OR1K_DELAYED_NOP(OR1K_INST(l.jal 	or1k_cache_init))
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal or1k_cache_init))
 
 	/* Clear BSS */
-.L10:
+.Lclear_bss:
 	LOAD_SYMBOL_2_GPR(r3,__bss_start)
 	LOAD_SYMBOL_2_GPR(r4,end)
 
-.L1:    l.sw    (0)(r3),r0
-        l.sfltu r3,r4
-        OR1K_DELAYED(
-        OR1K_INST(l.addi  r3,r3,4),
-        OR1K_INST(l.bf    .L1)
-        )
+.Lclear_bss_loop:
+	l.sw	(0)(r3),r0
+	l.sfltu r3,r4
+	OR1K_DELAYED(
+		OR1K_INST(l.addi r3,r3,4),
+		OR1K_INST(l.bf .Lclear_bss_loop)
+	)
 
 	/* Reinitialize the reentrancy structure */
-	OR1K_DELAYED_NOP(OR1K_INST(l.jal	__impure_init))
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal __impure_init))
 
 	/* Call global and static constructors */
-	OR1K_DELAYED_NOP(OR1K_INST(l.jal	_init))
-	
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal _init))
+
 	/* Set up destructors to be called from exit if main ever returns */
 	l.movhi	r3,hi(_fini)
-        OR1K_DELAYED(
-	OR1K_INST(l.ori	r3,r3,lo(_fini)),
-	OR1K_INST(l.jal	atexit)
-        )
+	OR1K_DELAYED(
+		OR1K_INST(l.ori r3,r3,lo(_fini)),
+		OR1K_INST(l.jal atexit)
+	)
 
 	/* Check if UART is to be initialised */
-	l.movhi	r4,hi(_board_uart_base)
-	l.ori	r4,r4,lo(_board_uart_base)
+	LOAD_SYMBOL_2_GPR(r4,_board_uart_base)
 	l.lwz	r4,0(r4)
-	l.sfne	r4,r0		/* Is base set? If not, no UART */
+	/* Is base set? If not, no UART */
+	l.sfne	r4,r0
 	l.bnf	.Lskip_uart
 	l.or	r3,r0,r0
-	OR1K_DELAYED_NOP(OR1K_INST(l.jal	__uart_init))
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal __uart_init))
 
 .Lskip_uart:
 	/* Board initialization */
 	OR1K_DELAYED_NOP(OR1K_INST(l.jal _board_init))
 
-.L2:	
+.Linit_done:
 	/* Jump to main program entry point (argc = argv = envp = 0) */
 	l.or	r3,r0,r0
 	l.or	r4,r0,r0
-        OR1K_DELAYED(
-	OR1K_INST(l.or	r5,r0,r0),
-	OR1K_INST(l.jal   main)
-        )
+	OR1K_DELAYED(
+		OR1K_INST(l.or r5,r0,r0),
+		OR1K_INST(l.jal main)
+	)
 
 	/* If program exits, call exit routine */
-        OR1K_DELAYED(
-	OR1K_INST(l.addi  r3,r11,0),
-	OR1K_INST(l.jal   exit)
-        )
+	OR1K_DELAYED(
+		OR1K_INST(l.addi r3,r11,0),
+		OR1K_INST(l.jal exit)
+	)
 
 	/* Loop forever */
-.L3:	OR1K_DELAYED_NOP(OR1K_INST(l.j	.L3))
-	
-	.size	_start, .-_start
+.Lloop_forever:
+	OR1K_DELAYED_NOP(OR1K_INST(l.j .Lloop_forever))
+
+	.size _start,.-_start
