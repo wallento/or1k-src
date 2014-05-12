@@ -333,7 +333,31 @@ TODO: What is meant with the following? What is patched?
 	.extern _board_mem_size
 	.extern _board_uart_base
 	
+	/* The early board initialization may for example read the memory size and
+	   set the mem_base and mem_size or do some preliminary board
+	   initialization. As we do not have a stack at this time, the function may
+	   not use the stack (and therefore be a or call a C function. But it can
+	   safely use all registers.
+
+	   We define a default implementation, which allows board files in C. As
+	   described above, this can only be used in assembly (board_*.S) as at
+	   the early stage not stack is available. A board that needs early
+	   initialization can overwrite the function with .global _board_init_early.
+
+	   Recommendation: Only use when you really need it! */
+	.weak _board_init_early
+_board_init_early:
+	OR1K_DELAYED_NOP(OR1K_INST(l.jr r9))
+
+	/* The board initialization is then called after the C library and UART are
+	   initialized. It can then be used to configure UART or other devices
+	   before the actual main function is called. */
+	.extern _board_init
+
 _start:
+	/* Call early board initialization */
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal _board_init_early))
+
 	/* Initialise stack and frame pointer (set to same value) */
 	LOAD_SYMBOL_2_GPR(r1,_board_mem_base)
 	l.lwz	r1,0(r1)
@@ -414,9 +438,13 @@ _start:
 	l.ori	r4,r4,lo(_board_uart_base)
 	l.lwz	r4,0(r4)
 	l.sfne	r4,r0		/* Is base set? If not, no UART */
-	l.bnf	.L2
+	l.bnf	.Lskip_uart
 	l.or	r3,r0,r0
 	OR1K_DELAYED_NOP(OR1K_INST(l.jal	__uart_init))
+
+.Lskip_uart:
+	/* Board initialization */
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal _board_init))
 
 .L2:	
 	/* Jump to main program entry point (argc = argv = envp = 0) */
