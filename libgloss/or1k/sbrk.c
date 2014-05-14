@@ -30,13 +30,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
-
-
-#undef errno
-extern int  errno;
-
-#define STACK_BUFFER  65536	/*!< Reserved stack space in bytes. */
-
+#include <reent.h>
 
 /* -------------------------------------------------------------------------- */
 /*!Extend the heap
@@ -51,9 +45,6 @@ extern int  errno;
    margin. The real solution is to use an OS with a proper virtual memory
    manager.
 
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
-
    @todo  We break this rule with heap_ptr. This needs to be clean, so that a
           re-entrant call to sbrk (e.g. in an ISR) is certain to work.
 
@@ -63,18 +54,19 @@ extern int  errno;
             code in errno.                                                    */
 /* -------------------------------------------------------------------------- */
 void *
-_sbrk (int nbytes)
+_sbrk_r (struct _reent* reent,
+         ptrdiff_t nbytes)
 {
   /* Symbol defined by linker map */
   extern int  end;		/* start of free memory (as symbol) */
 
   /* Value set by crt0.S */
-  extern void *stack;		/* end of free memory */
+  extern void *stack_bottom; /* end of free memory */
 
   /* The statically held previous end of the heap, with its initialization. */
   static void *heap_ptr = (void *)&end;		/* Previous end */
 
-  if ((stack - (heap_ptr + nbytes)) > STACK_BUFFER )
+  if ((stack_bottom - (heap_ptr + nbytes)) > 0 )
     {
       void *base  = heap_ptr;
       heap_ptr   += nbytes;
@@ -83,7 +75,7 @@ _sbrk (int nbytes)
     }
   else
     {
-      errno = ENOMEM;
+      reent->_errno = ENOMEM;
       return  (void *) -1;
     }
 }	/* _sbrk () */

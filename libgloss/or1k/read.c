@@ -30,21 +30,15 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
+#include <reent.h>
 #include <unistd.h>
 
 #include "or1k-support.h"
-
-#undef errno
-extern int  errno;
-
 
 /* -------------------------------------------------------------------------- */
 /*!Read from a file.
 
    Depending on board support, we may attempt to read from UART.
-
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
 
    @param[in] file  The fileno to read.
    @param[in] buf   Buffer into which to read.
@@ -53,11 +47,14 @@ extern int  errno;
    @return  0 to indicate EOF if the file is stdin, otherwise -1 to indicate
             failure, with an error code in the global variable errno.         */
 /* -------------------------------------------------------------------------- */
-int
-_read (int   file,
-       char *buf,
-       int   len)
+ssize_t
+_read_r (struct _reent *reent,
+         int           file,
+         void          *b,
+         size_t        len)
 {
+    char *buf = (char*) b;
+
 	if (STDIN_FILENO == file)
 	{
 		
@@ -90,7 +87,7 @@ _read (int   file,
 	}
 	else
 	{
-		errno = EBADF;
+		reent->_errno = EBADF;
 		return  -1;
 	}
 }	/* _read () */

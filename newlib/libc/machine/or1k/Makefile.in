@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# Makefile.am: Automake file for OR32 setjmp
+# Makefile.am: Automake file for OR1K setjmp
 
 # Copyright (C) 2000, Damjan Lampret
 # Copyright (C) 2004, Jacob Bower
@@ -68,7 +68,9 @@ host_triplet = @host@
 DIST_COMMON = $(srcdir)/../../../../config.guess \
 	$(srcdir)/../../../../config.sub $(srcdir)/Makefile.in \
 	$(srcdir)/Makefile.am $(top_srcdir)/configure \
-	$(am__configure_deps) $(srcdir)/../../../../mkinstalldirs
+	$(am__configure_deps) $(srcdir)/../../../../mkinstalldirs \
+	$(srcdir)/../../../../compile $(srcdir)/../../../../compile \
+	$(srcdir)/../../../../compile
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../../../acinclude.m4 \
@@ -84,7 +86,8 @@ ARFLAGS = cru
 lib_a_AR = $(AR) $(ARFLAGS)
 lib_a_LIBADD =
 am_lib_a_OBJECTS = lib_a-longjmp.$(OBJEXT) lib_a-setjmp.$(OBJEXT) \
-	lib_a-or1k-support.$(OBJEXT) lib_a-or1k-support-asm.$(OBJEXT)
+	lib_a-or1k-support.$(OBJEXT) lib_a-or1k-support-asm.$(OBJEXT) \
+	lib_a-or1k-impure.$(OBJEXT) lib_a-mlock.$(OBJEXT)
 lib_a_OBJECTS = $(am_lib_a_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir)
 depcomp =
@@ -142,12 +145,14 @@ MAKEINFO = @MAKEINFO@
 MAY_SUPPLY_SYSCALLS_FALSE = @MAY_SUPPLY_SYSCALLS_FALSE@
 MAY_SUPPLY_SYSCALLS_TRUE = @MAY_SUPPLY_SYSCALLS_TRUE@
 NEWLIB_CFLAGS = @NEWLIB_CFLAGS@
+NO_INCLUDE_LIST = @NO_INCLUDE_LIST@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
 PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
+PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 RANLIB = @RANLIB@
@@ -213,7 +218,13 @@ AUTOMAKE_OPTIONS = cygnus
 INCLUDES = $(NEWLIB_CFLAGS) $(CROSS_CFLAGS) $(TARGET_CFLAGS)
 AM_CCASFLAGS = $(INCLUDES)
 noinst_LIBRARIES = lib.a
-lib_a_SOURCES = longjmp.S setjmp.S or1k-support.c or1k-support-asm.S
+lib_a_SOURCES = longjmp.S \
+                setjmp.S \
+                or1k-support.c \
+                or1k-support-asm.S \
+                or1k-impure.c \
+                mlock.c
+
 lib_a_CCASFLAGS = $(AM_CCASFLAGS)
 lib_a_CFLAGS = $(AM_CFLAGS)
 ACLOCAL_AMFLAGS = -I ../../.. -I ../../../..
@@ -221,7 +232,7 @@ CONFIG_STATUS_DEPENDENCIES = $(newlib_basedir)/configure.host
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .S .o .obj
+.SUFFIXES: .S .c .o .obj
 am--refresh:
 	@:
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
@@ -293,12 +304,29 @@ lib_a-or1k-support-asm.o: or1k-support-asm.S
 lib_a-or1k-support-asm.obj: or1k-support-asm.S
 	$(CCAS) $(lib_a_CCASFLAGS) $(CCASFLAGS) -c -o lib_a-or1k-support-asm.obj `if test -f 'or1k-support-asm.S'; then $(CYGPATH_W) 'or1k-support-asm.S'; else $(CYGPATH_W) '$(srcdir)/or1k-support-asm.S'; fi`
 
+.c.o:
+	$(COMPILE) -c $<
+
+.c.obj:
+	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
 lib_a-or1k-support.o: or1k-support.c
-	$(CC) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-or1k-support.o `test -f 'or1k-support.c' || echo '$(srcdir)/'`or1k-support.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-or1k-support.o `test -f 'or1k-support.c' || echo '$(srcdir)/'`or1k-support.c
 
 lib_a-or1k-support.obj: or1k-support.c
-	$(CC) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-or1k-support.obj `if test -f 'or1k-support.c'; then $(CYGPATH_W) 'or1k-support.c'; else $(CYGPATH_W) '$(srcdir)/or1k-support.c'; fi`
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-or1k-support.obj `if test -f 'or1k-support.c'; then $(CYGPATH_W) 'or1k-support.c'; else $(CYGPATH_W) '$(srcdir)/or1k-support.c'; fi`
 
+lib_a-or1k-impure.o: or1k-impure.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-or1k-impure.o `test -f 'or1k-impure.c' || echo '$(srcdir)/'`or1k-impure.c
+
+lib_a-or1k-impure.obj: or1k-impure.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-or1k-impure.obj `if test -f 'or1k-impure.c'; then $(CYGPATH_W) 'or1k-impure.c'; else $(CYGPATH_W) '$(srcdir)/or1k-impure.c'; fi`
+
+lib_a-mlock.o: mlock.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-mlock.o `test -f 'mlock.c' || echo '$(srcdir)/'`mlock.c
+
+lib_a-mlock.obj: mlock.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-mlock.obj `if test -f 'mlock.c'; then $(CYGPATH_W) 'mlock.c'; else $(CYGPATH_W) '$(srcdir)/mlock.c'; fi`
 uninstall-info-am:
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)

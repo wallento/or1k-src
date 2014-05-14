@@ -30,14 +30,10 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
+#include <reent.h>
 #include <unistd.h>
 
 #include "or1k-support.h"
-
-
-#undef errno
-extern int  errno;
-
 
 /* -------------------------------------------------------------------------- */
 /*!Write a single character to standard output for the simulator
@@ -78,17 +74,20 @@ outbyte (char  c)
    @return  The number of bytes written on success, or -1 with an error code
             in the global variable errno on failure.                          */
 /* -------------------------------------------------------------------------- */
-int
-_write (int   file,
-        char *buf,
-        int   nbytes)
+_ssize_t
+_write_r (struct _reent *reent,
+          int           file,
+          const void    *b,
+          size_t        nbytes)
 {
   int i;
+
+  char *buf = (char*) b;
 
   /* We only handle stdout and stderr */
   if ((file != STDOUT_FILENO) && (file != STDERR_FILENO))
     {
-      errno = EBADF;
+      reent->_errno = EBADF;
       return -1;
     }
 

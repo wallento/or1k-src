@@ -30,13 +30,10 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
+#include <reent.h>
 #include <unistd.h>
 
 #include "or1k-support.h"
-
-#undef errno
-extern int  errno;
-
 
 /* -------------------------------------------------------------------------- */
 /*!Set a position in a file when using a UART.
@@ -44,19 +41,17 @@ extern int  errno;
    We only support stdin, stdout and stderr for which positioning is always to
    offset 0.
 
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
-
    @param[in] file    The fileno to lseek.
    @param[in] offset  The desired offset.
    @param[in] whence  Where to lseek from.
 
    @return  0, indicating the offset achieved.                                */
 /* -------------------------------------------------------------------------- */
-int
-_lseek (int   file,
-	int   offset,
-	int   whence)
+_off_t
+_lseek_r (struct _reent *reent,
+          int           file,
+          _off_t        offset,
+          int           whence)
 {
   if ((BOARD_HAS_UART && (STDIN_FILENO  == file)) ||
       (STDOUT_FILENO == file) ||
@@ -66,7 +61,7 @@ _lseek (int   file,
     }
   else
     {
-      errno = EBADF;
-      return (long) -1;
+      reent->_errno = EBADF;
+      return (_off_t) -1;
     }
 }	/* _lseek () */

@@ -30,29 +30,23 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
+#include <reent.h>
 #include <sys/stat.h>
-
-
-#undef errno
-extern int  errno;
-
 
 /* -------------------------------------------------------------------------- */
 /*!Status of an open file by name
 
    We have no file system, so this always fails.
 
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
-
    @return  -1 to indicate failure, with an error code in the global variable
             errno.                                                            */
 /* -------------------------------------------------------------------------- */
 int
-_stat (char        *file,
-       struct stat *st)
+_stat_r (struct _reent *reent,
+         const char    *file,
+         struct stat   *st)
 {
-  errno = EACCES;
+  reent->_errno = EACCES;
   return  -1;
 
 }	/* _stat () */

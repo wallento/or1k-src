@@ -1,8 +1,10 @@
 /* or1k-support - OR1K CPU support functions
   
    Copyright (C) 2011, ORSoC AB
+   Copyright (C) 2014, Authors
   
    Contributor Julius Baxter  <julius.baxter@orsoc.se>
+   Contributor Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
   
    This file is part of Newlib.
   
@@ -625,6 +627,14 @@ or1k_exception_handler:
 	l.sw    0x70(r1), r30
 	l.sw    0x74(r1), r31
 	
+	/* Replace impure pointer for exception */
+	l.movhi r20, hi(_exception_impure_ptr)
+	l.ori   r20, r20, lo(_exception_impure_ptr)
+	l.lwz   r20, 0(r20)
+	l.movhi r21, hi(_current_impure_ptr)
+	l.ori   r21, r21, lo(_current_impure_ptr)
+	l.sw    0(r21), r20
+
 	/* Determine offset in table of exception handler using r3*/
 	l.andi	r13,r3,0xffff
 	l.srli	r13,r13,6
@@ -651,6 +661,14 @@ or1k_exception_handler:
 	OR1K_INST(l.or	r3,r4,r4),
 	OR1K_INST(l.jalr	r13)
         )
+
+    /* Restore impure pointer */
+	l.movhi r20, hi(_impure_ptr)
+	l.ori   r20, r20, lo(_impure_ptr)
+	l.lwz   r20, 0(r20)
+	l.movhi r21, hi(_current_impure_ptr)
+	l.ori   r21, r21, lo(_current_impure_ptr)
+	l.sw    0(r21), r20
 
 	/* Restore state */
 	l.lwz    r2, 0x00(r1)
@@ -684,7 +702,8 @@ or1k_exception_handler:
 	l.lwz    r30, 0x70(r1)
 	l.lwz    r31, 0x74(r1)
 
-	l.addi  r1, r1, EXCEPTION_STACK_SIZE
+	// Restore original stack
+	l.lwz    r1, 0x78(r1)
 
 	l.rfe
 	l.nop

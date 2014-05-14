@@ -30,11 +30,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
-
-
-#undef errno
-extern int  errno;
-
+#include <reent.h>
 
 /* -------------------------------------------------------------------------- */
 /*!Wait for a child process
@@ -50,9 +46,10 @@ extern int  errno;
             errno.                                                            */
 /* -------------------------------------------------------------------------- */
 int
-_wait (int *status)
+_wait_r (struct _reent *reent,
+         int           *status)
 {
-  errno = ECHILD;
+  reent->_errno = ECHILD;
   return -1;			/* Always fails */
 
 }	/* _wait () */

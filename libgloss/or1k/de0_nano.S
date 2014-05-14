@@ -25,3 +25,13 @@ _board_uart_IRQ:	.long	13
 .weak _board_exit
 _board_exit:
         OR1K_DELAYED_NOP(l.j _board_exit)
+
+.global _board_init_early
+_board_init_early:
+    OR1K_DELAYED_NOP(l.jr r9)
+
+.weak _board_init
+_board_init:
+    OR1K_DELAYED_NOP(l.jr r9)
+
+

@@ -30,11 +30,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
-
-
-#undef errno
-extern int  errno;
-
+#include <reent.h>
 
 /* -------------------------------------------------------------------------- */
 /*!Close a file.
@@ -42,18 +38,16 @@ extern int  errno;
    We only support stdout and stderr and these cannot be closed. Any
    other file is invalid.
 
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
-
    @param[in] file  The fileno to close.
 
    @return  -1 to indicate failure, with an error code in the global variable
             errno.                                                            */
 /* -------------------------------------------------------------------------- */
 int
-_close (int   file)
+_close_r (struct _reent *reent,
+          int   file)
 {
-  errno = EBADF;
+  reent->_errno = EBADF;
   
   return -1;			/* Always fails */
 

@@ -99,7 +99,6 @@ LIBOR1K_OBJS =	_exit.o      		\
 		fork.o       		\
 		fstat.o 		\
 		getpid.o     		\
-		impure-init.o           \
 		isatty.o 		\
 		kill.o       		\
 		link.o       		\

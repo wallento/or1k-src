@@ -1,3 +1,31 @@
+2014-04-22  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* libc/machine/or1k/Makefile.am: Add mlock.c
+	* libc/machine/or1k/Makefile.in: ditto after automake
+	* libc/machine/or1k/mlock.c: Add malloc lock
+
+2014-04-22  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* libc/machine/or1k/include/or1k-support.h: Add functions and comment
+	* libc/machine/or1k/include/or1k-support.h: Clean up and extend
+	    functions, such as disable and restore interrupts and make timer
+	    more flexible.
+
+2014-04-18  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* libc/machine/or1k/Makefile.am: Add or1k-impure.c
+	* libc/machine/or1k/Makefile.in: Run automake
+	* libc/machine/configure.host: Enable dynamic reentrancy for or1k
+	* libc/machine/or1k/or1k-impure.c: Impure init and getreent
+	* libc/machine/or1k/or1k-support-asm.S: Replace impure data pointer
+	    with pointer to the exception impure data pointer during exception
+
+2014-04-18  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* libc/machine/or1k/Makefile.am: Add missing automake files
+	* libc/machine/or1k/Makefile.in: Run automake
+	* libc/machine/or1k/configure: ditto
+
+2014-04-16  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* libc/machine/or1k/or1k-support-asm.c: restore original stack
+	    pointer from exception stack after exception
+
 2013-10-27  Stefan Kristiansson  <stefan.kristiansson@saunalahti.fi>
 
 	* libc/machine/or1k/or1k-support-asm.S (or1k_interrupt_handler):

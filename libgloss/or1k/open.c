@@ -30,19 +30,13 @@
 /* -------------------------------------------------------------------------- */
 
 #include <errno.h>
-
-
-#undef errno
-extern int  errno;
+#include <reent.h>
 
 
 /* -------------------------------------------------------------------------- */
 /*!Open a file.
 
    We have no filesystem, so cannot open files.
-
-   Remember that this function is *not* reentrant, so no static state should
-   be held.
 
    @param[in] name   The file name to open
    @param[in] flags  The flags for opening
@@ -52,11 +46,12 @@ extern int  errno;
             errno.                                                            */
 /* -------------------------------------------------------------------------- */
 int
-_open (const char *name,
-       int         flags,
-       int         mode)
+_open_r (struct _reent *reent,
+         const char    *name,
+         int           flags,
+         int           mode)
 {
-  errno = ENOSYS;
+  reent->_errno = ENOSYS;
   return -1;			/* Always fails */
 
 }	/* _open () */
