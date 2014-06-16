@@ -636,7 +636,7 @@ or1k_exception_handler:
 	l.sw    0(r21), r20
 
 	/* Determine offset in table of exception handler using r3*/
-	l.andi	r13,r3,0xffff
+	l.andi	r13,r3,0xff00
 	l.srli	r13,r13,6
 	/* Substract 2 words, as we have no vector at 0 and no reset handler */
 	l.addi	r13,r13,-8
