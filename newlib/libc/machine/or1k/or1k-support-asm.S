@@ -486,10 +486,10 @@ or1k_interrupt_handler_data_ptr31:	.long	INTERRUPT_HANDLER_NOT_SET
         .type	or1k_interrupt_handler,@function
 or1k_interrupt_handler:
 	/* Make room on stack, save link register */
-	l.addi	r1,r1,-12
+	l.sw  -12(r1), r9
 	
     OR1K_DELAYED(
-        OR1K_INST(l.sw  0(r1), r9),
+	OR1K_INST(l.addi r1,r1,-12),
         /* Get reentrant data structure */
         OR1K_INST(l.jal _or1k_support_getreent)
     );
@@ -594,7 +594,7 @@ or1k_interrupt_handler_add:
 	l.slli	r3,r3,2
 
 	/* Add handler offset to table base */
-	l.add	r13,r15,r3
+	l.add	r13,r13,r3
 	/* Store handler function address */
 	l.sw 	0(r13),r4
 
