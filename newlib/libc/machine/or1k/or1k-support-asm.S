@@ -672,7 +672,6 @@ or1k_interrupt_disable:
 	.data
 	.align 4
 	.global or1k_exception_handler_table
-	.extern _interrupt_handler
 or1k_exception_handler_table:
 or1k_exception_handler_buserr:		.long	EXCEPTION_HANDLER_NOT_SET
 or1k_exception_handler_dpfault:		.long	EXCEPTION_HANDLER_NOT_SET
@@ -680,7 +679,7 @@ or1k_exception_handler_ipfault:		.long	EXCEPTION_HANDLER_NOT_SET
 or1k_exception_handler_tick:		.long	EXCEPTION_HANDLER_NOT_SET
 or1k_exception_handler_align:		.long	EXCEPTION_HANDLER_NOT_SET
 or1k_exception_handler_illegal:		.long	EXCEPTION_HANDLER_NOT_SET
-or1k_exception_handler_interrupt:	.long	EXCEPTION_HANDLER_NOT_SET
+or1k_exception_handler_interrupt:	.long	or1k_interrupt_handler
 or1k_exception_handler_dtlbmiss:	.long	EXCEPTION_HANDLER_NOT_SET
 or1k_exception_handler_itlbmiss:	.long	EXCEPTION_HANDLER_NOT_SET
 or1k_exception_handler_range:		.long	EXCEPTION_HANDLER_NOT_SET
