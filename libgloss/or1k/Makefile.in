@@ -80,7 +80,8 @@ BOARDS = 	or1ksim		\
 		ml501		\
 		ordb2a		\
 		atlys		\
-		de0_nano
+		de0_nano	\
+		optimsoc
 
 BOARD_OBJS = $(addsuffix .o,$(BOARDS))
 BOARD_LIBS = $(addsuffix .a,$(BOARDS))
