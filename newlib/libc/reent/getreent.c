@@ -7,8 +7,8 @@
 #undef __getreent
 #endif
 
-struct _reent *
+/*struct _reent *
 _DEFUN_VOID(__getreent)
 {
   return _impure_ptr;
-}
+}*/
