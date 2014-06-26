@@ -482,7 +482,7 @@ _start:
 	l.lwz	r1, 0(r2)
 	l.or	r2, r1, r1
 
-	OR1K_DELAYED_NOP(OR1K_INST(l.j .L2));
+	OR1K_DELAYED_NOP(OR1K_INST(l.j .Linit_done));
 .Lcore0:
 #endif
 	/* Call early board initialization */
@@ -593,15 +593,16 @@ _start:
 	l.bnf	.Lskip_uart
 	l.or	r3,r0,r0
 	OR1K_DELAYED_NOP(OR1K_INST(l.jal __uart_init))
+
+.Lskip_uart:
+	/* Board initialization */
+	OR1K_DELAYED_NOP(OR1K_INST(l.jal _board_init))
+
 #ifdef OR1K_MULTICORE
 	// Start other cores
 	l.ori	r3, r0, 1
 	l.sw	0x4(r0), r3
 #endif
-
-.Lskip_uart:
-	/* Board initialization */
-	OR1K_DELAYED_NOP(OR1K_INST(l.jal _board_init))
 
 .Linit_done:
 	/* Jump to main program entry point (argc = argv = envp = 0) */
