@@ -88,8 +88,8 @@ or1k_sync_tsl:
     l.lwa   r13, 0(r3)
     l.sfeq  r13, r0
     OR1K_DELAYED(
-        OR1K_INST(l.bnf .or1k_sync_tsl_done),
-        OR1K_INST(l.ori r11, r0, 0)
+        OR1K_INST(l.ori r11, r0, 0),
+        OR1K_INST(l.bnf .or1k_sync_tsl_done)
     )
     l.ori   r11, r0, 1
     l.swa   0(r3), r11
