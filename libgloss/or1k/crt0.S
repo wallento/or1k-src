@@ -457,9 +457,6 @@ _start:
 	time during startup */
 	OR1K_DELAYED_NOP(OR1K_INST(l.jal     or1k_cache_init))
 
-	/* TODO: only while we are not coherent */
-	OR1K_DELAYED_NOP(OR1K_INST(l.jal     or1k_dcache_disable))
-
 	// All but core 0 wait here
 	l.mfspr	r1, r0, SPR_COREID
 	l.sfeq	r1, r0
