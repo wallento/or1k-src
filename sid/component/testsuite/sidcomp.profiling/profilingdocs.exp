@@ -1,3 +1,0 @@
-load_lib "docs.exp"
-
-doc_test profiling sw-profile-gprof 
