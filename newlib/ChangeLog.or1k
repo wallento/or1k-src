@@ -1,3 +1,6 @@
+2014-06-16  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* libc/machine/or1k/or1k-support-asm.S: Correct mask for exception handling
+
 2014-04-22  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
 	* libc/machine/or1k/Makefile.am: Add mlock.c
 	* libc/machine/or1k/Makefile.in: ditto after automake
