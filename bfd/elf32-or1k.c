@@ -911,22 +911,19 @@ or1k_elf_relocate_section (bfd *output_bfd,
 	      off = h->got.offset;
 	      BFD_ASSERT (off != (bfd_vma) -1);
 
-	      dyn = htab->root.dynamic_sections_created;
-	      if (! WILL_CALL_FINISH_DYNAMIC_SYMBOL (dyn, info->shared, h)
-		  || (info->shared
-		      && (info->symbolic
-			  || h->dynindx == -1
-			  || h->forced_local)
-		      && h->def_regular))
-		{
-		  /* This is actually a static link, or it is a
-		     -Bsymbolic link and the symbol is defined
-		     locally, or the symbol was forced to be local
-		     because of a version file.  We must initialize
-		     this entry in the global offset table.  Since the
-		     offset must always be a multiple of 4, we use the
-		     least significant bit to record whether we have
-		     initialized it already.
+              dyn = htab->root.dynamic_sections_created;
+              if (! WILL_CALL_FINISH_DYNAMIC_SYMBOL (dyn, info->shared, h)
+                  || (info->shared
+                      && SYMBOL_REFERENCES_LOCAL (info, h)))
+                {
+                  /* This is actually a static link, or it is a
+                     -Bsymbolic link and the symbol is defined
+                     locally, or the symbol was forced to be local
+                     because of a version file.  We must initialize
+                     this entry in the global offset table.  Since the
+                     offset must always be a multiple of 4, we use the
+                     least significant bit to record whether we have
+                     initialized it already.
 
 		     When doing a dynamic link, we create a .rela.got
 		     relocation entry to initialize the value.  This
@@ -1019,27 +1016,24 @@ or1k_elf_relocate_section (bfd *output_bfd,
 		|| (input_section->flags & SEC_ALLOC) == 0)
 	      break;
 
-	    if ((info->shared
-		 && (h == NULL
-		     || ELF_ST_VISIBILITY (h->other) == STV_DEFAULT
-		     || h->root.type != bfd_link_hash_undefweak)
-		 && (!howto->pc_relative
-		     || (h != NULL
-			 && h->dynindx != -1
-			 && (!info->symbolic
-			     || !h->def_regular))))
-		|| (!info->shared
-		    && h != NULL
-		    && h->dynindx != -1
-		    && !h->non_got_ref
-		    && ((h->def_dynamic
-			 && !h->def_regular)
-			|| h->root.type == bfd_link_hash_undefweak
-			|| h->root.type == bfd_link_hash_undefined)))
-	      {
-		Elf_Internal_Rela outrel;
-		bfd_byte *loc;
-		bfd_boolean skip;
+            if ((info->shared
+                 && (h == NULL
+                     || ELF_ST_VISIBILITY (h->other) == STV_DEFAULT
+                     || h->root.type != bfd_link_hash_undefweak)
+		 && (howto->type != R_OR1K_INSN_REL_26
+		     || !SYMBOL_CALLS_LOCAL (info, h)))
+                || (!info->shared
+                    && h != NULL
+                    && h->dynindx != -1
+                    && !h->non_got_ref
+                    && ((h->def_dynamic
+                         && !h->def_regular)
+                        || h->root.type == bfd_link_hash_undefweak
+                        || h->root.type == bfd_link_hash_undefined)))
+              {
+                Elf_Internal_Rela outrel;
+                bfd_byte *loc;
+                bfd_boolean skip;
 
 		/* When generating a shared object, these relocations
 		   are copied into the output file to be resolved at run
@@ -1620,20 +1614,20 @@ or1k_elf_check_relocs (bfd *abfd,
 	       symbol.  */
 
             if ((info->shared
-		 && (sec->flags & SEC_ALLOC) != 0
-		 && (ELF32_R_TYPE (rel->r_info) != R_OR1K_INSN_REL_26
-		     || (h != NULL
-			 && (! info->symbolic
-			     || h->root.type == bfd_link_hash_defweak
-			     || !h->def_regular))))
-		|| (!info->shared
-		    && (sec->flags & SEC_ALLOC) != 0
-		    && h != NULL
-		    && (h->root.type == bfd_link_hash_defweak
-			|| !h->def_regular)))
-	      {
-		struct elf_or1k_dyn_relocs *p;
-		struct elf_or1k_dyn_relocs **head;
+                 && (sec->flags & SEC_ALLOC) != 0
+                 && (ELF32_R_TYPE (rel->r_info) != R_OR1K_INSN_REL_26
+                     || (h != NULL
+                         && (!SYMBOLIC_BIND (info, h)
+                             || h->root.type == bfd_link_hash_defweak
+                             || !h->def_regular))))
+                || (!info->shared
+                    && (sec->flags & SEC_ALLOC) != 0
+                    && h != NULL
+                    && (h->root.type == bfd_link_hash_defweak
+                        || !h->def_regular)))
+              {
+                struct elf_or1k_dyn_relocs *p;
+                struct elf_or1k_dyn_relocs **head;
 
 		/* When creating a shared object, we must copy these
 		   relocs into the output file.  We create a reloc
@@ -2001,17 +1995,13 @@ or1k_elf_finish_dynamic_symbol (bfd *output_bfd,
          the symbol was forced to be local because of a version file.
          The entry in the global offset table will already have been
          initialized in the relocate_section function.  */
-      if (info->shared
-	  && (info->symbolic
-	      || h->dynindx == -1
-	      || h->forced_local)
-	  && h->def_regular)
-	{
-	  rela.r_info = ELF32_R_INFO (0, R_OR1K_RELATIVE);
-	  rela.r_addend = (h->root.u.def.value
-			   + h->root.u.def.section->output_section->vma
-			   + h->root.u.def.section->output_offset);
-	}
+      if (info->shared && SYMBOL_REFERENCES_LOCAL (info, h))
+        {
+          rela.r_info = ELF32_R_INFO (0, R_OR1K_RELATIVE);
+          rela.r_addend = (h->root.u.def.value
+                           + h->root.u.def.section->output_section->vma
+                           + h->root.u.def.section->output_offset);
+        }
       else
 	{
 	  BFD_ASSERT ((h->got.offset & 1) == 0);
@@ -2337,11 +2327,9 @@ allocate_dynrelocs (struct elf_link_hash_entry *h, void * inf)
 
   if (info->shared)
     {
-      if (h->def_regular
-	  && (h->forced_local
-	      || info->symbolic))
-	{
-	  struct elf_or1k_dyn_relocs **pp;
+      if (SYMBOL_CALLS_LOCAL (info, h))
+        {
+          struct elf_or1k_dyn_relocs **pp;
 
 	  for (pp = &eh->dyn_relocs; (p = *pp) != NULL;)
 	    {
