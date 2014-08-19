@@ -164,6 +164,7 @@ or1k_timer_init(unsigned int hz)
 
   /* Set this, for easy access when reloading */
   uint32_t period = (_board_clk_freq/hz) & SPR_TTMR_PERIOD;
+  or1k_timer_period = period;
   or1k_mtspr(SPR_TTMR, period);
 
   /* Reset timer tick counter */
@@ -186,6 +187,7 @@ or1k_timer_set_period(uint32_t hz)
     uint32_t ttmr = or1k_mfspr(SPR_TTMR);
     ttmr = (ttmr & ~SPR_TTMR_PERIOD) | period;
     or1k_mtspr(SPR_TTMR, ttmr);
+    or1k_timer_period = period;
 }
 
 void
