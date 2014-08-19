@@ -1,3 +1,6 @@
+2014-08-19  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
+	* libc/machine/or1k/or1k-support.c: Set global period variable
+
 2014-06-16  Stefan Wallentowitz  <stefan.wallentowitz@tum.de>
 	* libc/machine/or1k/or1k-support-asm.S: Correct mask for exception handling
 
