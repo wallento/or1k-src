@@ -234,7 +234,6 @@ uint32_t
 or1k_timer_disable(void)
 {
     uint32_t sr = or1k_mfspr(SPR_SR);
-    or1k_mtspr(SPR_TTMR, or1k_mfspr(SPR_TTMR) & ~SPR_TTMR_IE);
     or1k_mtspr(SPR_SR, ~SPR_SR_TEE & sr);
     return (sr & SPR_SR_TEE);
 }
