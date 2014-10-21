@@ -120,6 +120,8 @@ exception_stack_core:	.space 4, 0
 	l.movhi	gpr,hi(symbol) ;           \
 	l.ori	gpr,gpr,lo(symbol)
 
+#define SHADOW_REG(x) (SPR_GPR_BASE + 32 + x)
+
 /* -------------------------------------------------------------------------- */
 /*!Macro to handle exceptions.
 
@@ -158,9 +160,9 @@ exception_stack_core:	.space 4, 0
 #else
 #define CALL_EXCEPTION_HANDLER					\
 	/* store current stack pointer to SPR_ISR0 */		\
-	l.mtspr	r0, r1, SPR_ISR0;				\
+	l.mtspr	r0, r1, SHADOW_REG(1);				\
 	/* store current GPR3 as we need it */			\
-	l.mtspr	r0, r3, SPR_ISR1;				\
+	l.mtspr	r0, r3, SHADOW_REG(2);				\
 	/* Load pointer to exception stack array */		\
 	l.movhi	r1, hi(exception_stack_core);			\
 	l.ori	r1, r1, lo(exception_stack_core);		\
@@ -175,11 +177,11 @@ exception_stack_core:	.space 4, 0
 	/* Reserve red zone and context space */		\
 	l.addi	r1, r1, -EXCEPTION_STACK_FRAME;			\
 	/* Load back software's stack pointer */		\
-	l.mfspr	r3, r0, SPR_ISR0;				\
+	l.mfspr	r3, r0, SHADOW_REG(1);				\
 	/* Store this in the context */				\
 	l.sw	0x78(r1), r3;					\
 	/* Load back GPR3 */					\
-	l.mfspr	r3, r0, SPR_ISR1;				\
+	l.mfspr	r3, r0, SHADOW_REG(2);				\
 	/* Store this in the context */				\
 	l.sw	0x4(r1), r3;					\
 	/* Store GPR4 in the context */				\
